@@ -57,6 +57,8 @@ const Index = () => {
   const [symptomsExperienced, setSymptomsExperienced] = useState<string[]>([]);
   const [noroAssistanceCount, setNoroAssistanceCount] = useState(0);
   const [gameEnded, setGameEnded] = useState(false);
+  const [noroGuidance, setNoroGuidance] = useState<any>(null);
+  const [focusMode, setFocusMode] = useState(false);
 
   const timeRemaining = Math.max(0, GAME_DURATION - timeElapsed);
 
@@ -144,6 +146,61 @@ const Index = () => {
     }
   }, [gameState.currentRow, adhdSettings.isHyperfocus, toast]);
 
+  // Handle Noro's active assistance
+  const handleNoroAssist = (assistanceType: string, data?: any) => {
+    setNoroAssistanceCount(prev => prev + 1);
+    setNoroGuidance(data);
+
+    switch (assistanceType) {
+      case 'break_down_task':
+        // Highlight specific keys or provide step-by-step guidance
+        toast({
+          title: "🎯 Step 1 of 3",
+          description: data?.guidance || "Let's start with a vowel",
+        });
+        break;
+        
+      case 'pattern_highlight':
+        // Suggest specific letters to try
+        if (data?.suggestedLetters) {
+          toast({
+            title: "💡 Try these letters",
+            description: `Suggested starting letters: ${data.suggestedLetters.join(', ')}`,
+          });
+        }
+        break;
+        
+      case 'reduce_overwhelm':
+        // Activate focus mode and reduce distractions
+        setFocusMode(true);
+        setIsDistracted(false);
+        setSensoryOverload(false);
+        if (data?.timeExtension) {
+          setTimeElapsed(prev => Math.max(0, prev - data.timeExtension));
+        }
+        toast({
+          title: "🧘 Focus mode activated",
+          description: "Distractions reduced. You've got this!",
+        });
+        setTimeout(() => setFocusMode(false), 30000);
+        break;
+        
+      case 'time_estimation':
+        // Provide time awareness
+        if (data?.checkpoints) {
+          data.checkpoints.forEach((checkpoint: number, index: number) => {
+            setTimeout(() => {
+              toast({
+                title: `⏱️ Checkpoint ${index + 1}`,
+                description: `${checkpoint} seconds - you're on track!`,
+              });
+            }, checkpoint * 1000);
+          });
+        }
+        break;
+    }
+  };
+
   const handleSuperpowerActivate = (type: string) => {
     setActiveSuperpower(type);
     setSuperpowersUsed(prev => [...prev, type]);
@@ -167,8 +224,10 @@ const Index = () => {
   const handleKeyPress = useCallback((key: string) => {
     if (gameState.isGameOver) return;
     
-    // Executive dysfunction delay
-    const delay = isExecutiveDysfunctionActive ? 2000 + Math.random() * 1000 : 0;
+    // Noro assistance: reduce executive dysfunction delay when actively helping
+    const baseDelay = isExecutiveDysfunctionActive ? 2000 + Math.random() * 1000 : 0;
+    const assistanceReduction = noroGuidance ? 0.5 : 1; // 50% reduction if Noro is helping
+    const delay = baseDelay * assistanceReduction;
     
     setTimeout(() => {
       if (key === 'ENTER') {
@@ -185,6 +244,15 @@ const Index = () => {
             isGameOver,
             isWinner
           }));
+          
+          // Clear Noro guidance after successful guess
+          if (noroGuidance) {
+            setNoroGuidance(null);
+            toast({
+              title: "🎉 Great work!",
+              description: "Noro's guidance helped you make progress!",
+            });
+          }
           
           if (isWinner) {
             toast({
@@ -204,10 +272,11 @@ const Index = () => {
           currentGuess: prev.currentGuess.slice(0, -1)
         }));
       } else if (key.length === 1 && gameState.currentGuess.length < 5) {
-        // Sometimes letters type in wrong order (ADHD symptom)
+        // Noro assistance: reduce typing errors when actively helping
         let newGuess = gameState.currentGuess + key;
-        if (Math.random() < 0.1 && !adhdSettings.isAccommodated && newGuess.length >= 2) {
-          // Swap last two characters
+        const errorReduction = noroGuidance ? 0.02 : 0.1; // Lower error rate with Noro
+        
+        if (Math.random() < errorReduction && !adhdSettings.isAccommodated && newGuess.length >= 2) {
           const chars = newGuess.split('');
           [chars[chars.length - 1], chars[chars.length - 2]] = [chars[chars.length - 2], chars[chars.length - 1]];
           newGuess = chars.join('');
@@ -219,7 +288,7 @@ const Index = () => {
         }));
       }
     }, delay);
-  }, [gameState, isExecutiveDysfunctionActive, adhdSettings.isAccommodated, toast]);
+  }, [gameState, isExecutiveDysfunctionActive, adhdSettings.isAccommodated, toast, noroGuidance]);
 
   const resetGame = () => {
     setGameState({
@@ -245,7 +314,7 @@ const Index = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-background transition-all duration-500 ${sensoryOverload && !activeSuperpower ? 'animate-pulse' : ''}`}>
+    <div className={`min-h-screen bg-background transition-all duration-500 ${sensoryOverload && !activeSuperpower && !focusMode ? 'animate-pulse' : ''}`}>
       <div className="container mx-auto max-w-lg p-4">
         {/* Header */}
         <header className="text-center py-4 border-b border-border">
@@ -257,6 +326,11 @@ const Index = () => {
             </span>
             <span>Attempt: {gameState.currentRow + 1}/6</span>
           </div>
+          {focusMode && (
+            <div className="mt-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+              🧘 Noro Focus Mode Active
+            </div>
+          )}
         </header>
 
         {/* Show game summary if game is over */}
@@ -302,18 +376,18 @@ const Index = () => {
                 gameState={gameState}
                 adhdSettings={{
                   ...adhdSettings,
-                  isHyperfocus: adhdSettings.isHyperfocus || activeSuperpower === 'hyperfocus_boost'
+                  isHyperfocus: adhdSettings.isHyperfocus || activeSuperpower === 'hyperfocus_boost' || focusMode
                 }}
-                sensoryOverload={sensoryOverload && activeSuperpower !== 'hyperfocus_boost'}
+                sensoryOverload={sensoryOverload && activeSuperpower !== 'hyperfocus_boost' && !focusMode}
               />
               
               <GameKeyboard 
                 onKeyPress={handleKeyPress}
                 gameState={gameState}
-                isExecutiveDysfunctionActive={isExecutiveDysfunctionActive && activeSuperpower !== 'hyperfocus_boost'}
+                isExecutiveDysfunctionActive={isExecutiveDysfunctionActive && activeSuperpower !== 'hyperfocus_boost' && !focusMode}
                 adhdSettings={{
                   ...adhdSettings,
-                  isHyperfocus: adhdSettings.isHyperfocus || activeSuperpower === 'hyperfocus_boost'
+                  isHyperfocus: adhdSettings.isHyperfocus || activeSuperpower === 'hyperfocus_boost' || focusMode
                 }}
               />
             </div>
@@ -323,13 +397,14 @@ const Index = () => {
               gameState={gameState}
               adhdSettings={adhdSettings}
               timeRemaining={timeRemaining}
+              onAssist={handleNoroAssist}
             />
 
             {/* ADHD Symptom Manager */}
             <SymptomManager 
               adhdSettings={{
                 ...adhdSettings,
-                isHyperfocus: adhdSettings.isHyperfocus || activeSuperpower === 'hyperfocus_boost'
+                isHyperfocus: adhdSettings.isHyperfocus || activeSuperpower === 'hyperfocus_boost' || focusMode
               }}
               gameState={gameState}
               onDistract={setIsDistracted}
@@ -337,7 +412,7 @@ const Index = () => {
 
             {/* Distraction Layer */}
             <DistractionLayer 
-              isActive={isDistracted && activeSuperpower !== 'hyperfocus_boost'}
+              isActive={isDistracted && activeSuperpower !== 'hyperfocus_boost' && !focusMode}
               intensity={adhdSettings.intensity}
               onClose={() => setIsDistracted(false)}
             />

@@ -1,42 +1,28 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Zap, Clock } from 'lucide-react';
+import { Zap, Clock, Brain, Target } from 'lucide-react';
 import type { GameState, ADHDSettings } from '@/pages/Index';
 
 interface NoroAssistantProps {
   gameState: GameState;
   adhdSettings: ADHDSettings;
   timeRemaining: number;
+  onAssist: (assistanceType: string, data?: any) => void;
 }
 
-const NORO_TIPS = [
-  {
-    trigger: 'executive_dysfunction',
-    message: "Hey! I notice you're having trouble starting. Let's break this down: First, look at the letters you know. Then pick just ONE position to focus on.",
-    timeEstimate: "This should take about 30 seconds"
-  },
-  {
-    trigger: 'stuck_pattern',
-    message: "I see you're trying similar patterns. Let's shift approach: Think of a completely different word category - maybe animals or colors?",
-    timeEstimate: "Give yourself 1 minute to explore this new direction"
-  },
-  {
-    trigger: 'time_pressure',
-    message: "Time is getting tight, but you've got this! Focus on the letters you KNOW are correct and build around them.",
-    timeEstimate: "You need about 2 minutes for your remaining guesses"
-  },
-  {
-    trigger: 'sensory_overload',
-    message: "Feeling overwhelmed? Take a deep breath. Cover the previous guesses with your hand and focus only on the current row.",
-    timeEstimate: "30 seconds to reset, then back to the puzzle"
-  }
-];
+interface NoroIntervention {
+  type: 'break_down_task' | 'time_estimation' | 'focus_boost' | 'pattern_highlight' | 'reduce_overwhelm';
+  trigger: string;
+  message: string;
+  action: () => void;
+}
 
-export const NoroAssistant = ({ gameState, adhdSettings, timeRemaining }: NoroAssistantProps) => {
+export const NoroAssistant = ({ gameState, adhdSettings, timeRemaining, onAssist }: NoroAssistantProps) => {
   const { toast } = useToast();
   const [lastAssistance, setLastAssistance] = useState<number>(0);
   const [assistanceCount, setAssistanceCount] = useState(0);
+  const [activeIntervention, setActiveIntervention] = useState<string | null>(null);
 
   useEffect(() => {
     if (adhdSettings.isAccommodated || adhdSettings.isHyperfocus) return;
@@ -44,56 +30,124 @@ export const NoroAssistant = ({ gameState, adhdSettings, timeRemaining }: NoroAs
     const now = Date.now();
     if (now - lastAssistance < 30000) return; // 30 second cooldown
 
-    let shouldAssist = false;
-    let assistanceType = '';
+    let shouldIntervene = false;
+    let intervention: NoroIntervention | null = null;
 
-    // Detect if user is stuck (same first letter multiple times)
+    // Executive dysfunction - break down the task
+    if (gameState.currentGuess.length === 0 && gameState.guesses.length < 2 && Math.random() < 0.4) {
+      intervention = {
+        type: 'break_down_task',
+        trigger: 'executive_dysfunction',
+        message: "I'm breaking this down for you: First, let's just type ANY letter. Then we'll build from there.",
+        action: () => {
+          onAssist('break_down_task', { 
+            step: 1, 
+            guidance: 'Just pick a vowel: A, E, I, O, or U',
+            highlight: 'vowels'
+          });
+          setActiveIntervention('break_down_task');
+          setTimeout(() => setActiveIntervention(null), 15000);
+        }
+      };
+      shouldIntervene = true;
+    }
+
+    // Stuck pattern - actively change approach
     if (gameState.guesses.length >= 2) {
       const lastTwo = gameState.guesses.slice(-2);
       if (lastTwo[0][0] === lastTwo[1][0] && Math.random() < 0.6) {
-        shouldAssist = true;
-        assistanceType = 'stuck_pattern';
+        intervention = {
+          type: 'pattern_highlight',
+          trigger: 'stuck_pattern',
+          message: "I'm highlighting different letter combinations for you. Let's try a completely different starting letter.",
+          action: () => {
+            const usedFirstLetters = gameState.guesses.map(g => g[0]);
+            const availableLetters = 'BCDFGHJKLMNPQRSTVWXYZ'.split('').filter(l => !usedFirstLetters.includes(l));
+            onAssist('pattern_highlight', { 
+              suggestedLetters: availableLetters.slice(0, 3),
+              avoid: usedFirstLetters
+            });
+            setActiveIntervention('pattern_highlight');
+            setTimeout(() => setActiveIntervention(null), 20000);
+          }
+        };
+        shouldIntervene = true;
       }
     }
 
-    // Time pressure assistance
-    if (timeRemaining < 120 && gameState.guesses.length >= 3 && Math.random() < 0.4) {
-      shouldAssist = true;
-      assistanceType = 'time_pressure';
+    // Time pressure - reduce overwhelm
+    if (timeRemaining < 120 && gameState.guesses.length >= 3 && Math.random() < 0.5) {
+      intervention = {
+        type: 'reduce_overwhelm',
+        trigger: 'time_pressure',
+        message: "Time pressure detected. I'm dimming distractions and focusing only on what matters.",
+        action: () => {
+          onAssist('reduce_overwhelm', { 
+            focusMode: true,
+            timeExtension: 30
+          });
+          setActiveIntervention('reduce_overwhelm');
+          setTimeout(() => setActiveIntervention(null), 30000);
+        }
+      };
+      shouldIntervene = true;
     }
 
-    // Executive dysfunction (no guesses for a while)
-    if (gameState.currentGuess.length === 0 && gameState.guesses.length < 2 && Math.random() < 0.3) {
-      shouldAssist = true;
-      assistanceType = 'executive_dysfunction';
+    // Provide time estimation
+    if (gameState.currentRow === 1 && Math.random() < 0.3) {
+      intervention = {
+        type: 'time_estimation',
+        trigger: 'time_awareness',
+        message: "Based on your progress, I estimate you need about 90 seconds for your next guess. I'll help you stay on track.",
+        action: () => {
+          onAssist('time_estimation', { 
+            estimatedTime: 90,
+            checkpoints: [30, 60, 90]
+          });
+          setActiveIntervention('time_estimation');
+          setTimeout(() => setActiveIntervention(null), 90000);
+        }
+      };
+      shouldIntervene = true;
     }
 
-    if (shouldAssist) {
-      const tip = NORO_TIPS.find(t => t.trigger === assistanceType) || NORO_TIPS[0];
-      
+    if (shouldIntervene && intervention) {
       toast({
-        title: "🤖 Noro here!",
-        description: tip.message,
+        title: "🤖 Noro is helping!",
+        description: intervention.message,
       });
 
-      setTimeout(() => {
-        toast({
-          title: "⏱️ Time estimate",
-          description: tip.timeEstimate,
-        });
-      }, 2000);
+      // Execute the intervention
+      intervention.action();
 
       setLastAssistance(now);
       setAssistanceCount(prev => prev + 1);
     }
-  }, [gameState.guesses, gameState.currentGuess, timeRemaining, adhdSettings, toast, lastAssistance]);
+  }, [gameState.guesses, gameState.currentGuess, timeRemaining, adhdSettings, toast, lastAssistance, onAssist]);
+
+  // Proactive encouragement based on progress
+  useEffect(() => {
+    if (gameState.currentRow === 3 && assistanceCount === 0) {
+      toast({
+        title: "🎯 Noro observes",
+        description: "You're doing great! Your pattern recognition is working well.",
+      });
+    }
+  }, [gameState.currentRow, assistanceCount, toast]);
 
   return (
     <div className="text-center mt-2">
-      {assistanceCount > 0 && (
+      {activeIntervention && (
+        <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-full text-sm animate-pulse border-2 border-blue-300">
+          <Brain className="w-4 h-4" />
+          Noro actively assisting
+        </div>
+      )}
+      
+      {assistanceCount > 0 && !activeIntervention && (
         <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs">
           <Zap className="w-3 h-3" />
-          Noro assisted {assistanceCount} time{assistanceCount !== 1 ? 's' : ''}
+          Noro helped {assistanceCount} time{assistanceCount !== 1 ? 's' : ''}
         </div>
       )}
     </div>
