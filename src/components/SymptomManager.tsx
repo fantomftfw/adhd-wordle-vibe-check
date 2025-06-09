@@ -16,12 +16,40 @@ const CREATIVE_HINTS = [
   "🧩 Different angle: Try thinking of synonyms or related words"
 ];
 
-const RANDOM_THOUGHTS = [
-  "Remember to drink water!",
-  "Your posture could probably use some adjusting",
-  "When was the last time you took a break?",
-  "That thing you forgot... it'll come back to you",
-  "The deadline for that project is... wait, what project?"
+const NATURAL_DISTRACTIONS = [
+  "🍕 Hmm, what should you have for lunch today?",
+  "📱 You should probably check your messages after this...",
+  "🎵 That song is stuck in your head again, isn't it?",
+  "☕ When did you last drink water? You're probably dehydrated",
+  "🧠 Wait, did you lock the car? Pretty sure you did... but did you?",
+  "📚 You really should organize your bookmarks sometime",
+  "🏠 The dishes are probably still in the sink from yesterday",
+  "💡 Random shower thought: Why don't they make silent velcro?",
+  "📧 That email you meant to reply to is still sitting there...",
+  "🎯 Focus! But also, wasn't there something else you were supposed to do?",
+  "🌙 What time did you go to bed last night? That might explain things",
+  "🔋 Your phone battery is probably getting low",
+  "🎨 This would be more fun if you could change the colors...",
+  "🍎 An apple sounds good right now. Or maybe chips. Definitely chips.",
+  "🎪 Remember that weird dream you had? What was that about?",
+  "📝 You should write down that idea before you forget it",
+  "🏃‍♂️ When was the last time you stretched? Your neck feels stiff",
+  "🎬 That movie trailer you saw yesterday looked interesting...",
+  "🧹 Your workspace could use some tidying up after this",
+  "⭐ What if you could play this game with your own words?"
+];
+
+const GAME_CONTEXT_DISTRACTIONS = [
+  "🤔 Is FOCUS a word that might appear in this game?",
+  "📖 You're really good at this! Maybe try the hard mode next?",
+  "🎲 Wonder what the algorithm picks for these words...",
+  "🔤 Five letters is perfect. Not too short, not too long",
+  "🎯 Your strategy is getting better with each game",
+  "💭 This reminds you of that word game you played as a kid",
+  "🏆 You should keep track of your win streak",
+  "🎨 The colors are satisfying when you get letters right",
+  "⚡ Sometimes your brain just knows the answer instantly",
+  "🔍 Pattern recognition is definitely your strong suit"
 ];
 
 export const SymptomManager = ({ adhdSettings, gameState, onDistract }: SymptomManagerProps) => {
@@ -43,22 +71,51 @@ export const SymptomManager = ({ adhdSettings, gameState, onDistract }: SymptomM
     }
   }, [gameState.currentRow, adhdSettings.isHyperfocus, toast, lastCreativeHint]);
 
-  // Random thought intrusions
+  // Natural distracting thoughts that feel authentic
   useEffect(() => {
     if (adhdSettings.isAccommodated || adhdSettings.isHyperfocus) return;
 
     const thoughtInterval = setInterval(() => {
-      if (Math.random() < 0.1) {
-        const thought = RANDOM_THOUGHTS[Math.floor(Math.random() * RANDOM_THOUGHTS.length)];
+      const intensity = adhdSettings.intensity / 5; // 0.2 to 1.0
+      if (Math.random() < intensity * 0.15) { // 3% to 15% chance based on intensity
+        
+        // Mix of general distractions and game-context ones
+        const allDistractions = [...NATURAL_DISTRACTIONS, ...GAME_CONTEXT_DISTRACTIONS];
+        const distraction = allDistractions[Math.floor(Math.random() * allDistractions.length)];
+        
         toast({
-          title: "💭 Random thought",
-          description: thought,
+          title: "💭 Your brain says:",
+          description: distraction,
         });
       }
-    }, 30000 + Math.random() * 60000); // 30-90 seconds
+    }, 20000 + Math.random() * 40000); // 20-60 seconds
 
     return () => clearInterval(thoughtInterval);
   }, [adhdSettings, toast]);
+
+  // Game-aware contextual notifications
+  useEffect(() => {
+    if (adhdSettings.isAccommodated || adhdSettings.isHyperfocus) return;
+
+    // Trigger based on game state
+    if (gameState.currentRow === 2 && Math.random() < 0.3) {
+      setTimeout(() => {
+        toast({
+          title: "🎮 Pro tip",
+          description: "You're building momentum! This is where the pattern clicks...",
+        });
+      }, 3000);
+    }
+
+    if (gameState.currentRow === 4 && Math.random() < 0.4) {
+      setTimeout(() => {
+        toast({
+          title: "⏰ Time check",
+          description: "Two guesses left! No pressure though... well, maybe a little",
+        });
+      }, 2000);
+    }
+  }, [gameState.currentRow, adhdSettings, toast]);
 
   // Distraction triggers
   useEffect(() => {

@@ -11,6 +11,8 @@ interface GameGridProps {
 export const GameGrid = ({ gameState, adhdSettings, sensoryOverload }: GameGridProps) => {
   const [fadingRows, setFadingRows] = useState<Set<number>>(new Set());
   const [colorDelays, setColorDelays] = useState<{ [key: string]: boolean }>({});
+  const [jumbledWords, setJumbledWords] = useState<{ [key: number]: string }>({});
+  const [isJumbling, setIsJumbling] = useState<Set<number>>(new Set());
 
   // Working memory challenges - make previous guesses fade
   useEffect(() => {
@@ -34,6 +36,51 @@ export const GameGrid = ({ gameState, adhdSettings, sensoryOverload }: GameGridP
     return () => clearInterval(interval);
   }, [gameState.guesses.length, adhdSettings]);
 
+  // Word jumbling effect - rare but noticeable
+  useEffect(() => {
+    if (adhdSettings.isAccommodated || adhdSettings.isHyperfocus || gameState.guesses.length < 2) return;
+
+    const jumbleInterval = setInterval(() => {
+      // Very rare effect - 2-8% chance based on intensity
+      const chance = (adhdSettings.intensity / 5) * 0.02 + 0.02; // 2% to 8%
+      
+      if (Math.random() < chance) {
+        // Pick a random completed row to jumble
+        const availableRows = Array.from({ length: gameState.guesses.length }, (_, i) => i);
+        const rowToJumble = availableRows[Math.floor(Math.random() * availableRows.length)];
+        const originalWord = gameState.guesses[rowToJumble];
+        
+        // Create a jumbled version
+        const letters = originalWord.split('');
+        for (let i = letters.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [letters[i], letters[j]] = [letters[j], letters[i]];
+        }
+        const jumbledWord = letters.join('');
+        
+        // Set the jumbled state
+        setJumbledWords(prev => ({ ...prev, [rowToJumble]: jumbledWord }));
+        setIsJumbling(prev => new Set([...prev, rowToJumble]));
+        
+        // Restore original after a brief moment
+        setTimeout(() => {
+          setJumbledWords(prev => {
+            const newState = { ...prev };
+            delete newState[rowToJumble];
+            return newState;
+          });
+          setIsJumbling(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(rowToJumble);
+            return newSet;
+          });
+        }, 800 + Math.random() * 1200); // 0.8-2 seconds
+      }
+    }, 25000 + Math.random() * 35000); // 25-60 seconds
+
+    return () => clearInterval(jumbleInterval);
+  }, [gameState.guesses.length, adhdSettings]);
+
   const getLetterStatus = (letter: string, position: number, word: string) => {
     if (word === gameState.targetWord) return 'correct';
     if (gameState.targetWord.includes(letter)) {
@@ -46,8 +93,13 @@ export const GameGrid = ({ gameState, adhdSettings, sensoryOverload }: GameGridP
   const renderRow = (guess: string, rowIndex: number, isCurrentRow: boolean = false) => {
     const cells = [];
     
+    // Use jumbled word if this row is currently jumbling
+    const displayWord = isJumbling.has(rowIndex) && jumbledWords[rowIndex] 
+      ? jumbledWords[rowIndex] 
+      : guess;
+    
     for (let i = 0; i < 5; i++) {
-      const letter = isCurrentRow ? gameState.currentGuess[i] || '' : guess[i] || '';
+      const letter = isCurrentRow ? gameState.currentGuess[i] || '' : displayWord[i] || '';
       const cellKey = `${rowIndex}-${i}`;
       
       let cellClass = 'w-12 h-12 border-2 border-border flex items-center justify-center text-lg font-bold transition-all duration-300 ';
@@ -61,8 +113,15 @@ export const GameGrid = ({ gameState, adhdSettings, sensoryOverload }: GameGridP
         cellClass += 'opacity-30 ';
       }
 
+      // Add jumbling animation
+      if (isJumbling.has(rowIndex)) {
+        cellClass += 'animate-pulse bg-yellow-100 ';
+      }
+
       if (!isCurrentRow && letter) {
-        const status = getLetterStatus(letter, i, guess);
+        // For color feedback, use the original word position for status calculation
+        const originalLetter = guess[i] || '';
+        const status = getLetterStatus(originalLetter, i, guess);
         
         // Color feedback delay simulation
         const hasColorDelay = colorDelays[cellKey];
@@ -107,7 +166,8 @@ export const GameGrid = ({ gameState, adhdSettings, sensoryOverload }: GameGridP
           key={cellKey}
           className={cellClass + fontSize}
           style={{
-            transform: sensoryOverload ? `rotate(${(Math.random() - 0.5) * 2}deg)` : 'none'
+            transform: sensoryOverload ? `rotate(${(Math.random() - 0.5) * 2}deg)` : 
+                      isJumbling.has(rowIndex) ? `translateX(${(Math.random() - 0.5) * 4}px)` : 'none'
           }}
         >
           {letter}
