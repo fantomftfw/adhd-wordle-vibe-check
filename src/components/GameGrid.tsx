@@ -24,7 +24,12 @@ export const GameGrid = ({ gameState, colorBlindness, hyperfocusMode }: GameGrid
       let cellClass = 'w-12 h-12 border-2 border-border flex items-center justify-center text-lg font-bold transition-all duration-300 ';
       
       if (hyperfocusMode) {
-        cellClass += 'ring-2 ring-blue-400 ';
+        if (isCurrentRow) {
+          // Make current row extra visible during hyperfocus
+          cellClass += 'ring-2 ring-blue-400 bg-background/90 text-foreground shadow-lg shadow-blue-400/50 ';
+        } else {
+          cellClass += 'ring-1 ring-blue-400/50 ';
+        }
       }
 
       if (!isCurrentRow && letter && !colorBlindness) {
@@ -42,7 +47,11 @@ export const GameGrid = ({ gameState, colorBlindness, hyperfocusMode }: GameGrid
             break;
         }
       } else if (isCurrentRow && letter) {
-        cellClass += 'border-foreground ';
+        if (hyperfocusMode) {
+          cellClass += 'border-blue-400 bg-background/95 text-foreground font-bold ';
+        } else {
+          cellClass += 'border-foreground ';
+        }
       } else if (!isCurrentRow && letter && colorBlindness) {
         cellClass += 'bg-gray-300 text-gray-700 border-gray-300 ';
       }
@@ -84,8 +93,8 @@ export const GameGrid = ({ gameState, colorBlindness, hyperfocusMode }: GameGrid
       
       {hyperfocusMode && (
         <div className="text-center mt-4">
-          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-            🎯 Hyperfocus Mode Active
+          <div className="inline-flex items-center gap-2 bg-blue-100/90 text-blue-800 px-3 py-1 rounded-full text-sm backdrop-blur-sm">
+            🎯 Hyperfocus Mode Active - Type to continue
           </div>
         </div>
       )}
