@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { GameGrid } from '@/components/GameGrid';
 import { GameKeyboard } from '@/components/GameKeyboard';
@@ -284,7 +283,7 @@ const Index = () => {
     setHyperfocusMode(false);
     setContextSwitchActive(false);
     setActivePowerUp(null);
-    setPowerUpBlob(null);
+    setPowerUpVisible(false);
   };
 
   const formatTime = (seconds: number) => {

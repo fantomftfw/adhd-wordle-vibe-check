@@ -1,5 +1,5 @@
 
-import { Bulb } from 'lucide-react';
+import { Lightbulb } from 'lucide-react';
 
 interface PowerUpBlobProps {
   type: string;
@@ -30,7 +30,7 @@ export const PowerUpBlob = ({ type, onClick }: PowerUpBlobProps) => {
       onClick={onClick}
       title={POWER_UP_NAMES[type as keyof typeof POWER_UP_NAMES]}
     >
-      <Bulb className="w-8 h-8 text-white" />
+      <Lightbulb className="w-8 h-8 text-white" />
     </div>
   );
 };
