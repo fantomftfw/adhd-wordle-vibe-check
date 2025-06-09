@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { GameGrid } from '@/components/GameGrid';
 import { GameKeyboard } from '@/components/GameKeyboard';
@@ -88,48 +89,63 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [gameActive, gameState.isGameOver, hyperfocusMode, gameState.targetWord, toast]);
 
-  // ADHD Symptoms - only after 20 seconds and when symptoms should be active
+  // ADHD Symptoms - start after 20 seconds
   useEffect(() => {
     if (timeElapsed < SYMPTOMS_START_TIME || !gameActive || gameState.isGameOver) return;
     if (activePowerUp === 'remove_distraction') return; // Skip symptoms if distraction removal is active
 
+    console.log('Starting ADHD symptoms at time:', timeElapsed);
+
     const symptomInterval = setInterval(() => {
       const random = Math.random();
+      console.log('Symptom check - random value:', random, 'time:', timeElapsed);
       
-      // Keyboard freeze (20% chance)
-      if (random < 0.20 && !keyboardFrozen) {
+      // Keyboard freeze (25% chance every interval)
+      if (random < 0.25 && !keyboardFrozen) {
+        console.log('Activating keyboard freeze');
         setKeyboardFrozen(true);
-        console.log('Keyboard frozen activated');
+        toast({
+          title: "🔒 Keyboard frozen",
+          description: "Focus interrupted...",
+        });
         setTimeout(() => {
           setKeyboardFrozen(false);
-          console.log('Keyboard frozen deactivated');
+          console.log('Keyboard freeze deactivated');
         }, 2000 + Math.random() * 1000);
       }
       
-      // Letter scrambling (15% chance)
-      else if (random < 0.35 && !letterScrambling) {
+      // Letter scrambling (20% chance)
+      else if (random < 0.45 && !letterScrambling) {
+        console.log('Activating letter scrambling');
         setLetterScrambling(true);
-        console.log('Letter scrambling activated');
+        toast({
+          title: "🔀 Letters scrambling",
+          description: "Words getting mixed up...",
+        });
         setTimeout(() => {
           setLetterScrambling(false);
           console.log('Letter scrambling deactivated');
         }, 3000 + Math.random() * 2000);
       }
       
-      // Color blindness (15% chance)
-      else if (random < 0.50 && !colorBlindness) {
+      // Color blindness (20% chance)
+      else if (random < 0.65 && !colorBlindness) {
+        console.log('Activating color blindness');
         setColorBlindness(true);
-        console.log('Color blindness activated');
+        toast({
+          title: "👁️ Colors fading",
+          description: "Visual feedback disrupted...",
+        });
         setTimeout(() => {
           setColorBlindness(false);
           console.log('Color blindness deactivated');
         }, 3000 + Math.random() * 2000);
       }
       
-      // Hyperfocus mode (10% chance)
-      else if (random < 0.60 && !hyperfocusMode) {
+      // Hyperfocus mode (15% chance)
+      else if (random < 0.80 && !hyperfocusMode) {
+        console.log('Activating hyperfocus mode');
         setHyperfocusMode(true);
-        console.log('Hyperfocus mode activated');
         toast({
           title: "🎯 Hyperfocus activated!",
           description: "All distractions cleared, but time moves faster!",
@@ -140,22 +156,24 @@ const Index = () => {
         }, 10000);
       }
       
-      // Context switching (8% chance)
-      else if (random < 0.68 && !contextSwitchActive) {
+      // Context switching (10% chance)
+      else if (random < 0.90 && !contextSwitchActive) {
+        console.log('Activating context switch');
         setContextSwitchActive(true);
-        console.log('Context switch activated');
       }
-    }, 4000 + Math.random() * 6000); // 4-10 seconds
+    }, 3000 + Math.random() * 4000); // Every 3-7 seconds
 
     return () => clearInterval(symptomInterval);
   }, [timeElapsed, gameActive, gameState.isGameOver, keyboardFrozen, letterScrambling, colorBlindness, hyperfocusMode, contextSwitchActive, activePowerUp, toast]);
 
-  // Power-up spawning
+  // Power-up spawning - only after symptoms start (after 20 seconds)
   useEffect(() => {
-    if (!gameActive || gameState.isGameOver || powerUpVisible) return;
+    if (timeElapsed < SYMPTOMS_START_TIME || !gameActive || gameState.isGameOver || powerUpVisible) return;
+
+    console.log('Power-up spawning check at time:', timeElapsed);
 
     const spawnInterval = setInterval(() => {
-      if (Math.random() < 0.15) { // 15% chance every interval
+      if (Math.random() < 0.20) { // 20% chance every interval
         const powerUpTypes = ['slow_time', 'reveal_letters', 'remove_distraction', 'focus_mode'];
         const randomType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
         
@@ -169,10 +187,10 @@ const Index = () => {
           console.log('Power-up disappeared');
         }, 10000);
       }
-    }, 15000 + Math.random() * 25000); // 15-40 seconds
+    }, 10000 + Math.random() * 15000); // Every 10-25 seconds
 
     return () => clearInterval(spawnInterval);
-  }, [gameActive, gameState.isGameOver, powerUpVisible]);
+  }, [timeElapsed, gameActive, gameState.isGameOver, powerUpVisible]);
 
   const handlePowerUpClick = (type: string) => {
     setActivePowerUp(type);
@@ -182,7 +200,6 @@ const Index = () => {
     switch (type) {
       case 'slow_time':
         toast({ title: "⏰ Time slowed down!", description: "Timer runs at half speed for 15 seconds" });
-        // Note: Implementation would need to modify the timer interval
         setTimeout(() => setActivePowerUp(null), 15000);
         break;
         
