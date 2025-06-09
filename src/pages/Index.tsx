@@ -48,6 +48,7 @@ const Index = () => {
 
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [gameActive, setGameActive] = useState(true);
+  const [symptomsActive, setSymptomsActive] = useState(false);
   
   // ADHD Symptoms
   const [keyboardFrozen, setKeyboardFrozen] = useState(false);
@@ -70,6 +71,13 @@ const Index = () => {
     const interval = setInterval(() => {
       setTimeElapsed(prev => {
         const newTime = prev + (hyperfocusMode ? 2 : 1);
+        
+        // Activate symptoms after SYMPTOMS_START_TIME
+        if (newTime >= SYMPTOMS_START_TIME && !symptomsActive) {
+          setSymptomsActive(true);
+          console.log('🧠 Symptoms activated at time:', newTime);
+        }
+        
         if (newTime >= GAME_DURATION) {
           setGameActive(false);
           setGameState(prevState => ({
@@ -86,23 +94,20 @@ const Index = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [gameActive, gameState.isGameOver, hyperfocusMode, gameState.targetWord, toast]);
+  }, [gameActive, gameState.isGameOver, hyperfocusMode, gameState.targetWord, toast, symptomsActive]);
 
-  // ADHD Symptoms - Fixed to not restart every second
+  // ADHD Symptoms - Fixed timing
   useEffect(() => {
-    if (!gameActive || gameState.isGameOver) return;
+    if (!gameActive || gameState.isGameOver || !symptomsActive) return;
     
-    // Only start after symptoms time, and don't restart constantly
-    if (timeElapsed < SYMPTOMS_START_TIME) return;
-    
-    console.log('🧠 Starting ADHD symptoms system at time:', timeElapsed);
+    console.log('🧠 Starting ADHD symptoms system');
 
     const symptomInterval = setInterval(() => {
       const random = Math.random();
       console.log('🎲 Symptom check:', random);
       
-      // 80% chance for symptoms to trigger
-      if (random < 0.8) {
+      // 90% chance for symptoms to trigger
+      if (random < 0.9) {
         const symptomRoll = Math.random();
         console.log('🎯 Symptom type roll:', symptomRoll);
         
@@ -151,20 +156,20 @@ const Index = () => {
           });
         }
       }
-    }, 3000); // Check every 3 seconds
+    }, 2000); // Check every 2 seconds for faster testing
 
     return () => {
       console.log('🧹 Cleaning up symptoms interval');
       clearInterval(symptomInterval);
     };
-  }, [gameActive, gameState.isGameOver, activePowerUp, toast]); // Removed timeElapsed from dependencies
+  }, [gameActive, gameState.isGameOver, symptomsActive, activePowerUp, toast]);
 
-  // Separate effect for hyperfocus
+  // Hyperfocus effect - Fixed
   useEffect(() => {
-    if (!gameActive || gameState.isGameOver || timeElapsed < SYMPTOMS_START_TIME) return;
+    if (!gameActive || gameState.isGameOver || !symptomsActive) return;
 
     const hyperfocusInterval = setInterval(() => {
-      if (Math.random() < 0.15 && !hyperfocusMode) { // 15% chance
+      if (Math.random() < 0.2 && !hyperfocusMode) { // 20% chance
         console.log('🎯 TRIGGERING: Hyperfocus mode');
         setHyperfocusMode(true);
         toast({
@@ -176,20 +181,19 @@ const Index = () => {
           console.log('🎯 Hyperfocus deactivated');
         }, 8000);
       }
-    }, 5000);
+    }, 4000); // Check every 4 seconds
 
     return () => clearInterval(hyperfocusInterval);
-  }, [gameActive, gameState.isGameOver, hyperfocusMode, toast]);
+  }, [gameActive, gameState.isGameOver, symptomsActive, hyperfocusMode, toast]);
 
   // Power-up spawning - Fixed timing
   useEffect(() => {
-    if (!gameActive || gameState.isGameOver || powerUpVisible) return;
-    if (timeElapsed < SYMPTOMS_START_TIME) return;
+    if (!gameActive || gameState.isGameOver || powerUpVisible || !symptomsActive) return;
 
     console.log('💡 Starting power-up spawning system');
 
     const spawnInterval = setInterval(() => {
-      if (Math.random() < 0.4) { // 40% chance
+      if (Math.random() < 0.6) { // 60% chance for testing
         const powerUpTypes = ['slow_time', 'reveal_letters', 'remove_distraction', 'focus_mode'];
         const randomType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
         
@@ -197,18 +201,23 @@ const Index = () => {
         setPowerUpVisible(true);
         console.log('💡 Power-up spawned:', randomType);
         
+        toast({
+          title: "💡 Power-up available!",
+          description: "Click the floating button to activate it!",
+        });
+        
         setTimeout(() => {
           setPowerUpVisible(false);
           console.log('💡 Power-up disappeared');
         }, 8000);
       }
-    }, 10000); // Check every 10 seconds
+    }, 5000); // Check every 5 seconds for testing
 
     return () => {
       console.log('🧹 Cleaning up power-up interval');
       clearInterval(spawnInterval);
     };
-  }, [gameActive, gameState.isGameOver, powerUpVisible]); // Removed timeElapsed
+  }, [gameActive, gameState.isGameOver, powerUpVisible, symptomsActive, toast]);
 
   const handlePowerUpClick = (type: string) => {
     setActivePowerUp(type);
@@ -312,6 +321,7 @@ const Index = () => {
     });
     setTimeElapsed(0);
     setGameActive(true);
+    setSymptomsActive(false);
     setKeyboardFrozen(false);
     setLetterScrambling(false);
     setColorBlindness(false);
@@ -340,7 +350,7 @@ const Index = () => {
             </span>
             <span>Attempt: {gameState.currentRow + 1}/6</span>
           </div>
-          {timeElapsed >= SYMPTOMS_START_TIME && (
+          {symptomsActive && (
             <div className="mt-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
               🧠 ADHD Mode Active - Symptoms may occur
             </div>
