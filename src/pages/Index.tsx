@@ -1,13 +1,16 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { GameGrid } from '@/components/GameGrid';
 import { GameKeyboard } from '@/components/GameKeyboard';
 import { DistractionLayer } from '@/components/DistractionLayer';
 import { AccessibilityControls } from '@/components/AccessibilityControls';
 import { SymptomManager } from '@/components/SymptomManager';
+import { NoroAssistant } from '@/components/NoroAssistant';
+import { SuperpowerManager } from '@/components/SuperpowerManager';
+import { GameSummary } from '@/components/GameSummary';
 import { useToast } from '@/hooks/use-toast';
 
 const WORD_LIST = ['FOCUS', 'BRAIN', 'CHAOS', 'SPARK', 'DRIFT', 'STORM', 'PEACE', 'BURST', 'GLOW', 'RUSH'];
+const GAME_DURATION = 300; // 5 minutes
 
 export interface ADHDSettings {
   intensity: number;
@@ -49,21 +52,55 @@ const Index = () => {
   const [isExecutiveDysfunctionActive, setIsExecutiveDysfunctionActive] = useState(false);
   const [isDistracted, setIsDistracted] = useState(false);
   const [sensoryOverload, setSensoryOverload] = useState(false);
+  const [activeSuperpower, setActiveSuperpower] = useState<string | null>(null);
+  const [superpowersUsed, setSuperpowersUsed] = useState<string[]>([]);
+  const [symptomsExperienced, setSymptomsExperienced] = useState<string[]>([]);
+  const [noroAssistanceCount, setNoroAssistanceCount] = useState(0);
+  const [gameEnded, setGameEnded] = useState(false);
+
+  const timeRemaining = Math.max(0, GAME_DURATION - timeElapsed);
 
   // Time blindness effect
   useEffect(() => {
     const interval = setInterval(() => {
-      setTimeElapsed(prev => prev + timeSpeed);
+      setTimeElapsed(prev => {
+        const newTime = prev + timeSpeed;
+        if (newTime >= GAME_DURATION && !gameEnded) {
+          setGameEnded(true);
+          setGameState(prevState => ({
+            ...prevState,
+            isGameOver: true
+          }));
+          toast({
+            title: "⏰ Time's up!",
+            description: "Let's see how your ADHD brain performed today!",
+          });
+        }
+        return newTime;
+      });
       
       // Randomly change time speed to simulate time blindness
-      if (Math.random() < 0.02 && !adhdSettings.isAccommodated) {
+      if (Math.random() < 0.02 && !adhdSettings.isAccommodated && !activeSuperpower) {
         const speeds = [0.5, 0.8, 1, 1.5, 2];
         setTimeSpeed(speeds[Math.floor(Math.random() * speeds.length)]);
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timeSpeed, adhdSettings.isAccommodated]);
+  }, [timeSpeed, adhdSettings.isAccommodated, activeSuperpower, gameEnded, toast]);
+
+  // Track symptoms
+  useEffect(() => {
+    if (isExecutiveDysfunctionActive && !symptomsExperienced.includes('executive_dysfunction')) {
+      setSymptomsExperienced(prev => [...prev, 'executive_dysfunction']);
+    }
+    if (isDistracted && !symptomsExperienced.includes('distractions')) {
+      setSymptomsExperienced(prev => [...prev, 'distractions']);
+    }
+    if (sensoryOverload && !symptomsExperienced.includes('sensory_overload')) {
+      setSymptomsExperienced(prev => [...prev, 'sensory_overload']);
+    }
+  }, [isExecutiveDysfunctionActive, isDistracted, sensoryOverload, symptomsExperienced]);
 
   // Random ADHD symptom triggers
   useEffect(() => {
@@ -106,6 +143,26 @@ const Index = () => {
       }, 30000 + Math.random() * 60000);
     }
   }, [gameState.currentRow, adhdSettings.isHyperfocus, toast]);
+
+  const handleSuperpowerActivate = (type: string) => {
+    setActiveSuperpower(type);
+    setSuperpowersUsed(prev => [...prev, type]);
+    
+    if (type === 'hyperfocus_boost') {
+      setADHDSettings(prev => ({ ...prev, isHyperfocus: true }));
+      setIsDistracted(false);
+      setSensoryOverload(false);
+    } else if (type === 'time_clarity') {
+      setTimeSpeed(1);
+    }
+  };
+
+  const handleSuperpowerDeactivate = () => {
+    setActiveSuperpower(null);
+    if (activeSuperpower === 'hyperfocus_boost') {
+      setADHDSettings(prev => ({ ...prev, isHyperfocus: false }));
+    }
+  };
 
   const handleKeyPress = useCallback((key: string) => {
     if (gameState.isGameOver) return;
@@ -175,6 +232,10 @@ const Index = () => {
     });
     setTimeElapsed(0);
     setTimeSpeed(1);
+    setSuperpowersUsed([]);
+    setSymptomsExperienced([]);
+    setNoroAssistanceCount(0);
+    setGameEnded(false);
   };
 
   const formatTime = (seconds: number) => {
@@ -184,64 +245,104 @@ const Index = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-background transition-all duration-500 ${sensoryOverload ? 'animate-pulse' : ''}`}>
+    <div className={`min-h-screen bg-background transition-all duration-500 ${sensoryOverload && !activeSuperpower ? 'animate-pulse' : ''}`}>
       <div className="container mx-auto max-w-lg p-4">
         {/* Header */}
         <header className="text-center py-4 border-b border-border">
           <h1 className="text-2xl font-bold text-foreground">ADHD Wordle</h1>
           <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
             <span>Time: {formatTime(timeElapsed)}</span>
+            <span className={timeRemaining < 60 ? 'text-red-500 font-bold' : ''}>
+              Remaining: {formatTime(timeRemaining)}
+            </span>
             <span>Attempt: {gameState.currentRow + 1}/6</span>
           </div>
         </header>
 
-        {/* Accessibility Controls */}
-        <AccessibilityControls 
-          settings={adhdSettings}
-          onSettingsChange={setADHDSettings}
-        />
-
-        {/* Main Game Area */}
-        <div className="py-4 space-y-4">
-          <GameGrid 
-            gameState={gameState}
-            adhdSettings={adhdSettings}
-            sensoryOverload={sensoryOverload}
-          />
-          
-          <GameKeyboard 
-            onKeyPress={handleKeyPress}
-            gameState={gameState}
-            isExecutiveDysfunctionActive={isExecutiveDysfunctionActive}
-            adhdSettings={adhdSettings}
-          />
-        </div>
-
-        {/* Game Over Actions */}
-        {gameState.isGameOver && (
-          <div className="text-center py-4">
-            <button
-              onClick={resetGame}
-              className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 transition-colors"
-            >
-              Play Again
-            </button>
+        {/* Show game summary if game is over */}
+        {gameState.isGameOver ? (
+          <div className="py-4 space-y-4">
+            <GameSummary 
+              gameState={gameState}
+              adhdSettings={adhdSettings}
+              timeElapsed={timeElapsed}
+              superpowersUsed={superpowersUsed}
+              symptomsExperienced={symptomsExperienced}
+              noroAssistanceCount={noroAssistanceCount}
+            />
+            
+            <div className="text-center">
+              <button
+                onClick={resetGame}
+                className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 transition-colors"
+              >
+                Play Again
+              </button>
+            </div>
           </div>
+        ) : (
+          <>
+            {/* Accessibility Controls */}
+            <AccessibilityControls 
+              settings={adhdSettings}
+              onSettingsChange={setADHDSettings}
+            />
+
+            {/* Superpower Manager */}
+            <SuperpowerManager 
+              gameState={gameState}
+              adhdSettings={adhdSettings}
+              onSuperpowerActivate={handleSuperpowerActivate}
+              onSuperpowerDeactivate={handleSuperpowerDeactivate}
+            />
+
+            {/* Main Game Area */}
+            <div className="py-4 space-y-4">
+              <GameGrid 
+                gameState={gameState}
+                adhdSettings={{
+                  ...adhdSettings,
+                  isHyperfocus: adhdSettings.isHyperfocus || activeSuperpower === 'hyperfocus_boost'
+                }}
+                sensoryOverload={sensoryOverload && activeSuperpower !== 'hyperfocus_boost'}
+              />
+              
+              <GameKeyboard 
+                onKeyPress={handleKeyPress}
+                gameState={gameState}
+                isExecutiveDysfunctionActive={isExecutiveDysfunctionActive && activeSuperpower !== 'hyperfocus_boost'}
+                adhdSettings={{
+                  ...adhdSettings,
+                  isHyperfocus: adhdSettings.isHyperfocus || activeSuperpower === 'hyperfocus_boost'
+                }}
+              />
+            </div>
+
+            {/* Noro Assistant */}
+            <NoroAssistant 
+              gameState={gameState}
+              adhdSettings={adhdSettings}
+              timeRemaining={timeRemaining}
+            />
+
+            {/* ADHD Symptom Manager */}
+            <SymptomManager 
+              adhdSettings={{
+                ...adhdSettings,
+                isHyperfocus: adhdSettings.isHyperfocus || activeSuperpower === 'hyperfocus_boost'
+              }}
+              gameState={gameState}
+              onDistract={setIsDistracted}
+            />
+
+            {/* Distraction Layer */}
+            <DistractionLayer 
+              isActive={isDistracted && activeSuperpower !== 'hyperfocus_boost'}
+              intensity={adhdSettings.intensity}
+              onClose={() => setIsDistracted(false)}
+            />
+          </>
         )}
-
-        {/* ADHD Symptom Manager */}
-        <SymptomManager 
-          adhdSettings={adhdSettings}
-          gameState={gameState}
-          onDistract={setIsDistracted}
-        />
-
-        {/* Distraction Layer */}
-        <DistractionLayer 
-          isActive={isDistracted && !adhdSettings.isHyperfocus}
-          intensity={adhdSettings.intensity}
-          onClose={() => setIsDistracted(false)}
-        />
       </div>
     </div>
   );
