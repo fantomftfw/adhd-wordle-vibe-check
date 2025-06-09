@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { GameState, ADHDSettings } from '@/pages/Index';
 
 interface GameGridProps {
@@ -34,7 +34,7 @@ export const GameGrid = ({ gameState, adhdSettings, sensoryOverload }: GameGridP
     }, 8000);
 
     return () => clearInterval(interval);
-  }, [gameState.guesses.length, adhdSettings]);
+  }, [gameState.guesses.length, adhdSettings.isAccommodated, adhdSettings.isHyperfocus]);
 
   // Word jumbling effect - rare but noticeable
   useEffect(() => {
@@ -79,16 +79,40 @@ export const GameGrid = ({ gameState, adhdSettings, sensoryOverload }: GameGridP
     }, 25000 + Math.random() * 35000); // 25-60 seconds
 
     return () => clearInterval(jumbleInterval);
-  }, [gameState.guesses.length, adhdSettings]);
+  }, [gameState.guesses.length, adhdSettings.isAccommodated, adhdSettings.isHyperfocus, adhdSettings.intensity]);
 
-  const getLetterStatus = (letter: string, position: number, word: string) => {
+  // Color delay effect - separated from render to prevent infinite loops
+  useEffect(() => {
+    if (adhdSettings.isAccommodated) return;
+
+    const delayInterval = setInterval(() => {
+      if (Math.random() < 0.1 && gameState.guesses.length > 0) {
+        const rowIndex = Math.floor(Math.random() * gameState.guesses.length);
+        const cellIndex = Math.floor(Math.random() * 5);
+        const cellKey = `${rowIndex}-${cellIndex}`;
+        
+        setColorDelays(prev => ({ ...prev, [cellKey]: true }));
+        setTimeout(() => {
+          setColorDelays(prev => {
+            const newDelays = { ...prev };
+            delete newDelays[cellKey];
+            return newDelays;
+          });
+        }, 1000 + Math.random() * 2000);
+      }
+    }, 5000);
+
+    return () => clearInterval(delayInterval);
+  }, [adhdSettings.isAccommodated, gameState.guesses.length]);
+
+  const getLetterStatus = useCallback((letter: string, position: number, word: string) => {
     if (word === gameState.targetWord) return 'correct';
     if (gameState.targetWord.includes(letter)) {
       if (gameState.targetWord[position] === letter) return 'correct';
       return 'present';
     }
     return 'absent';
-  };
+  }, [gameState.targetWord]);
 
   const renderRow = (guess: string, rowIndex: number, isCurrentRow: boolean = false) => {
     const cells = [];
@@ -139,18 +163,6 @@ export const GameGrid = ({ gameState, adhdSettings, sensoryOverload }: GameGridP
               cellClass += 'bg-gray-500 text-white border-gray-500 ';
               break;
           }
-        }
-        
-        // Randomly trigger color delays
-        if (Math.random() < 0.1 && !adhdSettings.isAccommodated) {
-          setColorDelays(prev => ({ ...prev, [cellKey]: true }));
-          setTimeout(() => {
-            setColorDelays(prev => {
-              const newDelays = { ...prev };
-              delete newDelays[cellKey];
-              return newDelays;
-            });
-          }, 1000 + Math.random() * 2000);
         }
       } else if (isCurrentRow && letter) {
         cellClass += 'border-foreground ';
