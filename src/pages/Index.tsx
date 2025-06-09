@@ -50,12 +50,13 @@ const Index = () => {
   const [gameActive, setGameActive] = useState(true);
   const [symptomsActive, setSymptomsActive] = useState(false);
   
-  // ADHD Symptoms
+  // ADHD Symptoms with improved timing
   const [keyboardFrozen, setKeyboardFrozen] = useState(false);
   const [letterScrambling, setLetterScrambling] = useState(false);
   const [colorBlindness, setColorBlindness] = useState(false);
   const [hyperfocusMode, setHyperfocusMode] = useState(false);
   const [contextSwitchActive, setContextSwitchActive] = useState(false);
+  const [lastSymptomTime, setLastSymptomTime] = useState(0);
   
   // Power-ups
   const [activePowerUp, setActivePowerUp] = useState<string | null>(null);
@@ -96,20 +97,41 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [gameActive, gameState.isGameOver, hyperfocusMode, gameState.targetWord, toast, symptomsActive]);
 
-  // ADHD Symptoms - Fixed timing
+  // ADHD Symptoms - Improved timing with cooldowns
   useEffect(() => {
     if (!gameActive || gameState.isGameOver || !symptomsActive) return;
+    
+    // Don't trigger symptoms if remove_distraction power-up is active
+    if (activePowerUp === 'remove_distraction') return;
     
     console.log('🧠 Starting ADHD symptoms system');
 
     const symptomInterval = setInterval(() => {
+      const currentTime = Date.now();
+      const timeSinceLastSymptom = currentTime - lastSymptomTime;
+      
+      // Minimum 8 seconds between symptoms (cooldown)
+      if (timeSinceLastSymptom < 8000) {
+        console.log('⏳ Symptom on cooldown, skipping...');
+        return;
+      }
+      
+      // Check if any symptom is currently active
+      const anySymptomActive = keyboardFrozen || letterScrambling || colorBlindness || contextSwitchActive;
+      if (anySymptomActive) {
+        console.log('🚫 Symptom already active, skipping...');
+        return;
+      }
+      
       const random = Math.random();
       console.log('🎲 Symptom check:', random);
       
-      // 90% chance for symptoms to trigger
-      if (random < 0.9) {
+      // Reduced chance for symptoms to trigger (30% instead of 90%)
+      if (random < 0.3) {
         const symptomRoll = Math.random();
         console.log('🎯 Symptom type roll:', symptomRoll);
+        
+        setLastSymptomTime(currentTime);
         
         if (symptomRoll < 0.25) {
           console.log('🔒 TRIGGERING: Keyboard freeze');
@@ -121,7 +143,7 @@ const Index = () => {
           setTimeout(() => {
             setKeyboardFrozen(false);
             console.log('🔓 Keyboard unfrozen');
-          }, 2000);
+          }, 3000); // 3 seconds duration
         }
         else if (symptomRoll < 0.5) {
           console.log('🔀 TRIGGERING: Letter scrambling');
@@ -133,7 +155,7 @@ const Index = () => {
           setTimeout(() => {
             setLetterScrambling(false);
             console.log('✅ Letter scrambling stopped');
-          }, 3000);
+          }, 4000); // 4 seconds duration
         }
         else if (symptomRoll < 0.75) {
           console.log('👁️ TRIGGERING: Color blindness');
@@ -145,7 +167,7 @@ const Index = () => {
           setTimeout(() => {
             setColorBlindness(false);
             console.log('🌈 Colors restored');
-          }, 3000);
+          }, 5000); // 5 seconds duration
         }
         else {
           console.log('🎪 TRIGGERING: Context switch');
@@ -154,22 +176,24 @@ const Index = () => {
             title: "🎪 Context switch!",
             description: "Something else grabbed your attention...",
           });
+          // Context switch will be cleared by the popup component
         }
       }
-    }, 2000); // Check every 2 seconds for faster testing
+    }, 5000); // Check every 5 seconds (increased from 2 seconds)
 
     return () => {
       console.log('🧹 Cleaning up symptoms interval');
       clearInterval(symptomInterval);
     };
-  }, [gameActive, gameState.isGameOver, symptomsActive, activePowerUp, toast]);
+  }, [gameActive, gameState.isGameOver, symptomsActive, activePowerUp, toast, keyboardFrozen, letterScrambling, colorBlindness, contextSwitchActive, lastSymptomTime]);
 
   // Hyperfocus effect - Fixed
   useEffect(() => {
     if (!gameActive || gameState.isGameOver || !symptomsActive) return;
+    if (activePowerUp === 'remove_distraction') return;
 
     const hyperfocusInterval = setInterval(() => {
-      if (Math.random() < 0.2 && !hyperfocusMode) { // 20% chance
+      if (Math.random() < 0.15 && !hyperfocusMode) { // Reduced chance (15% instead of 20%)
         console.log('🎯 TRIGGERING: Hyperfocus mode');
         setHyperfocusMode(true);
         toast({
@@ -181,10 +205,10 @@ const Index = () => {
           console.log('🎯 Hyperfocus deactivated');
         }, 8000);
       }
-    }, 4000); // Check every 4 seconds
+    }, 12000); // Check every 12 seconds (increased from 4 seconds)
 
     return () => clearInterval(hyperfocusInterval);
-  }, [gameActive, gameState.isGameOver, symptomsActive, hyperfocusMode, toast]);
+  }, [gameActive, gameState.isGameOver, symptomsActive, hyperfocusMode, toast, activePowerUp]);
 
   // Power-up spawning - Fixed timing
   useEffect(() => {
@@ -193,7 +217,7 @@ const Index = () => {
     console.log('💡 Starting power-up spawning system');
 
     const spawnInterval = setInterval(() => {
-      if (Math.random() < 0.6) { // 60% chance for testing
+      if (Math.random() < 0.4) { // Reduced chance (40% instead of 60%)
         const powerUpTypes = ['slow_time', 'reveal_letters', 'remove_distraction', 'focus_mode'];
         const randomType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
         
@@ -209,9 +233,9 @@ const Index = () => {
         setTimeout(() => {
           setPowerUpVisible(false);
           console.log('💡 Power-up disappeared');
-        }, 8000);
+        }, 10000); // Increased visibility duration to 10 seconds
       }
-    }, 5000); // Check every 5 seconds for testing
+    }, 8000); // Check every 8 seconds (increased from 5 seconds)
 
     return () => {
       console.log('🧹 Cleaning up power-up interval');
@@ -236,11 +260,16 @@ const Index = () => {
         break;
         
       case 'remove_distraction':
-        toast({ title: "🧘 Distractions removed!", description: "No symptoms for 10 seconds" });
+        toast({ title: "🧘 Distractions removed!", description: "No symptoms for 15 seconds" });
+        // Clear all active symptoms immediately
         setKeyboardFrozen(false);
         setLetterScrambling(false);
         setColorBlindness(false);
-        setTimeout(() => setActivePowerUp(null), 10000);
+        setContextSwitchActive(false);
+        setHyperfocusMode(false);
+        // Reset the last symptom time to add extra cooldown
+        setLastSymptomTime(Date.now() + 5000); // Add 5 seconds extra cooldown
+        setTimeout(() => setActivePowerUp(null), 15000); // Increased duration to 15 seconds
         break;
         
       case 'focus_mode':
@@ -329,6 +358,7 @@ const Index = () => {
     setContextSwitchActive(false);
     setActivePowerUp(null);
     setPowerUpVisible(false);
+    setLastSymptomTime(0);
   };
 
   const formatTime = (seconds: number) => {
@@ -358,6 +388,11 @@ const Index = () => {
           {hyperfocusMode && (
             <div className="mt-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
               🎯 Hyperfocus Mode - Time moving faster!
+            </div>
+          )}
+          {activePowerUp === 'remove_distraction' && (
+            <div className="mt-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+              🧘 Distraction-Free Mode Active
             </div>
           )}
         </header>
@@ -437,7 +472,7 @@ const Index = () => {
         )}
 
         {/* Context switch popup */}
-        {contextSwitchActive && (
+        {contextSwitchActive && activePowerUp !== 'remove_distraction' && (
           <ContextSwitchPopup 
             onComplete={() => setContextSwitchActive(false)}
           />
