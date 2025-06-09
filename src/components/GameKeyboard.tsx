@@ -46,19 +46,27 @@ export const GameKeyboard = ({
     
     let keyClass = 'px-3 py-4 rounded font-semibold transition-all duration-200 touch-manipulation ';
     
-    // Base styling - NEVER change colors based on guesses
+    // Base styling
     if (key === 'ENTER' || key === 'BACKSPACE') {
       keyClass += 'px-4 bg-secondary text-secondary-foreground hover:bg-secondary/80 ';
     } else {
       keyClass += 'bg-muted text-muted-foreground hover:bg-muted/80 ';
     }
     
-    // Power-up: reveal letters effect (only visual highlight, no color change)
+    // Power-up: reveal letters effect - hide 70% of incorrect letters
     if (revealLetters && key !== 'ENTER' && key !== 'BACKSPACE') {
       if (!isTargetLetter) {
-        keyClass += 'opacity-30 ';
+        // Generate a deterministic random for this key to ensure consistency
+        const keyHash = key.charCodeAt(0);
+        const shouldHide = (keyHash % 10) < 7; // 70% chance to hide
+        
+        if (shouldHide) {
+          keyClass += 'opacity-20 scale-90 ';
+        } else {
+          keyClass += 'opacity-60 ';
+        }
       } else {
-        keyClass += 'ring-2 ring-blue-400 ';
+        keyClass += 'ring-2 ring-blue-400 bg-blue-100 text-blue-800 ';
       }
     }
     
