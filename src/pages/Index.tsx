@@ -1,16 +1,16 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { GameGrid } from '@/components/GameGrid';
 import { GameKeyboard } from '@/components/GameKeyboard';
-import { DistractionLayer } from '@/components/DistractionLayer';
 import { AccessibilityControls } from '@/components/AccessibilityControls';
-import { SymptomManager } from '@/components/SymptomManager';
-import { NoroAssistant } from '@/components/NoroAssistant';
-import { SuperpowerManager } from '@/components/SuperpowerManager';
 import { GameSummary } from '@/components/GameSummary';
+import { PowerUpBlob } from '@/components/PowerUpBlob';
+import { ContextSwitchPopup } from '@/components/ContextSwitchPopup';
 import { useToast } from '@/hooks/use-toast';
 
 const WORD_LIST = ['FOCUS', 'BRAIN', 'CHAOS', 'SPARK', 'DRIFT', 'STORM', 'PEACE', 'BURST', 'GLOW', 'RUSH'];
 const GAME_DURATION = 300; // 5 minutes
+const SYMPTOMS_START_TIME = 20; // Start symptoms after 20 seconds
 
 export interface ADHDSettings {
   intensity: number;
@@ -48,247 +48,205 @@ const Index = () => {
   });
 
   const [timeElapsed, setTimeElapsed] = useState(0);
-  const [timeSpeed, setTimeSpeed] = useState(1);
-  const [isExecutiveDysfunctionActive, setIsExecutiveDysfunctionActive] = useState(false);
-  const [isDistracted, setIsDistracted] = useState(false);
-  const [sensoryOverload, setSensoryOverload] = useState(false);
-  const [activeSuperpower, setActiveSuperpower] = useState<string | null>(null);
-  const [superpowersUsed, setSuperpowersUsed] = useState<string[]>([]);
-  const [symptomsExperienced, setSymptomsExperienced] = useState<string[]>([]);
-  const [noroAssistanceCount, setNoroAssistanceCount] = useState(0);
-  const [gameEnded, setGameEnded] = useState(false);
-  const [noroGuidance, setNoroGuidance] = useState<any>(null);
-  const [focusMode, setFocusMode] = useState(false);
+  const [gameActive, setGameActive] = useState(true);
+  
+  // ADHD Symptoms
+  const [keyboardFrozen, setKeyboardFrozen] = useState(false);
+  const [letterScrambling, setLetterScrambling] = useState(false);
+  const [colorBlindness, setColorBlindness] = useState(false);
+  const [hyperfocusMode, setHyperfocusMode] = useState(false);
+  const [contextSwitchActive, setContextSwitchActive] = useState(false);
+  
+  // Power-ups
+  const [activePowerUp, setActivePowerUp] = useState<string | null>(null);
+  const [powerUpBlob, setPowerUpBlob] = useState<{ x: number; y: number; type: string } | null>(null);
 
   const timeRemaining = Math.max(0, GAME_DURATION - timeElapsed);
 
-  // Time blindness effect
+  // Main game timer
   useEffect(() => {
+    if (!gameActive || gameState.isGameOver) return;
+
     const interval = setInterval(() => {
       setTimeElapsed(prev => {
-        const newTime = prev + timeSpeed;
-        if (newTime >= GAME_DURATION && !gameEnded) {
-          setGameEnded(true);
+        const newTime = prev + (hyperfocusMode ? 2 : 1); // Double speed during hyperfocus
+        if (newTime >= GAME_DURATION) {
+          setGameActive(false);
           setGameState(prevState => ({
             ...prevState,
             isGameOver: true
           }));
           toast({
             title: "⏰ Time's up!",
-            description: "Let's see how your ADHD brain performed today!",
+            description: `The word was ${gameState.targetWord}`,
           });
         }
         return newTime;
       });
-      
-      // Randomly change time speed to simulate time blindness
-      if (Math.random() < 0.02 && !adhdSettings.isAccommodated && !activeSuperpower) {
-        const speeds = [0.5, 0.8, 1, 1.5, 2];
-        setTimeSpeed(speeds[Math.floor(Math.random() * speeds.length)]);
-      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timeSpeed, adhdSettings.isAccommodated, activeSuperpower, gameEnded, toast]);
+  }, [gameActive, gameState.isGameOver, hyperfocusMode, gameState.targetWord, toast]);
 
-  // Track symptoms
+  // ADHD Symptoms - only after 20 seconds
   useEffect(() => {
-    if (isExecutiveDysfunctionActive && !symptomsExperienced.includes('executive_dysfunction')) {
-      setSymptomsExperienced(prev => [...prev, 'executive_dysfunction']);
-    }
-    if (isDistracted && !symptomsExperienced.includes('distractions')) {
-      setSymptomsExperienced(prev => [...prev, 'distractions']);
-    }
-    if (sensoryOverload && !symptomsExperienced.includes('sensory_overload')) {
-      setSymptomsExperienced(prev => [...prev, 'sensory_overload']);
-    }
-  }, [isExecutiveDysfunctionActive, isDistracted, sensoryOverload, symptomsExperienced]);
-
-  // Random ADHD symptom triggers
-  useEffect(() => {
-    if (adhdSettings.isAccommodated || adhdSettings.isHyperfocus) return;
+    if (timeElapsed < SYMPTOMS_START_TIME || !gameActive || gameState.isGameOver || activePowerUp) return;
 
     const symptomInterval = setInterval(() => {
-      const symptomChance = adhdSettings.intensity / 10;
+      const random = Math.random();
       
-      if (Math.random() < symptomChance) {
-        // Executive dysfunction
-        if (Math.random() < 0.3) {
-          setIsExecutiveDysfunctionActive(true);
-          setTimeout(() => setIsExecutiveDysfunctionActive(false), 2000 + Math.random() * 3000);
-        }
-        
-        // Sensory overload
-        if (Math.random() < 0.2) {
-          setSensoryOverload(true);
-          setTimeout(() => setSensoryOverload(false), 1000 + Math.random() * 2000);
-        }
+      // Keyboard freeze (15% chance)
+      if (random < 0.15 && !keyboardFrozen) {
+        setKeyboardFrozen(true);
+        setTimeout(() => setKeyboardFrozen(false), 2000 + Math.random() * 1000);
+      }
+      
+      // Letter scrambling (10% chance)
+      else if (random < 0.25 && !letterScrambling) {
+        setLetterScrambling(true);
+        setTimeout(() => setLetterScrambling(false), 3000 + Math.random() * 2000);
+      }
+      
+      // Color blindness (12% chance)
+      else if (random < 0.37 && !colorBlindness) {
+        setColorBlindness(true);
+        setTimeout(() => setColorBlindness(false), 3000 + Math.random() * 2000);
+      }
+      
+      // Hyperfocus mode (8% chance)
+      else if (random < 0.45 && !hyperfocusMode) {
+        setHyperfocusMode(true);
+        toast({
+          title: "🎯 Hyperfocus activated!",
+          description: "All distractions cleared, but time moves faster!",
+        });
+        setTimeout(() => setHyperfocusMode(false), 10000);
+      }
+      
+      // Context switching (5% chance)
+      else if (random < 0.50 && !contextSwitchActive) {
+        setContextSwitchActive(true);
       }
     }, 3000 + Math.random() * 7000);
 
     return () => clearInterval(symptomInterval);
-  }, [adhdSettings]);
+  }, [timeElapsed, gameActive, gameState.isGameOver, keyboardFrozen, letterScrambling, colorBlindness, hyperfocusMode, contextSwitchActive, activePowerUp, toast]);
 
-  // Hyperfocus trigger
+  // Power-up blob spawning
   useEffect(() => {
-    if (gameState.currentRow >= 3 && !adhdSettings.isHyperfocus && Math.random() < 0.3) {
-      setADHDSettings(prev => ({ ...prev, isHyperfocus: true }));
-      setTimeSpeed(1.5); // Time moves faster during hyperfocus
-      toast({
-        title: "🎯 Hyperfocus Activated!",
-        description: "Distractions cleared. Time moves faster. You've got this!",
-      });
-      
-      setTimeout(() => {
-        setADHDSettings(prev => ({ ...prev, isHyperfocus: false }));
-        setTimeSpeed(1);
-      }, 30000 + Math.random() * 60000);
-    }
-  }, [gameState.currentRow, adhdSettings.isHyperfocus, toast]);
+    if (!gameActive || gameState.isGameOver || powerUpBlob) return;
 
-  // Handle Noro's active assistance
-  const handleNoroAssist = (assistanceType: string, data?: any) => {
-    setNoroAssistanceCount(prev => prev + 1);
-    setNoroGuidance(data);
-
-    switch (assistanceType) {
-      case 'break_down_task':
-        // Highlight specific keys or provide step-by-step guidance
-        toast({
-          title: "🎯 Step 1 of 3",
-          description: data?.guidance || "Let's start with a vowel",
+    const spawnInterval = setInterval(() => {
+      if (Math.random() < 0.1) { // 10% chance every interval
+        const powerUpTypes = ['slow_time', 'reveal_letters', 'remove_distraction', 'focus_mode'];
+        const randomType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+        
+        setPowerUpBlob({
+          x: Math.random() * (window.innerWidth - 100),
+          y: -50,
+          type: randomType
         });
-        break;
         
-      case 'pattern_highlight':
-        // Suggest specific letters to try
-        if (data?.suggestedLetters) {
-          toast({
-            title: "💡 Try these letters",
-            description: `Suggested starting letters: ${data.suggestedLetters.join(', ')}`,
-          });
-        }
-        break;
-        
-      case 'reduce_overwhelm':
-        // Activate focus mode and reduce distractions
-        setFocusMode(true);
-        setIsDistracted(false);
-        setSensoryOverload(false);
-        if (data?.timeExtension) {
-          setTimeElapsed(prev => Math.max(0, prev - data.timeExtension));
-        }
-        toast({
-          title: "🧘 Focus mode activated",
-          description: "Distractions reduced. You've got this!",
-        });
-        setTimeout(() => setFocusMode(false), 30000);
-        break;
-        
-      case 'time_estimation':
-        // Provide time awareness
-        if (data?.checkpoints) {
-          data.checkpoints.forEach((checkpoint: number, index: number) => {
-            setTimeout(() => {
-              toast({
-                title: `⏱️ Checkpoint ${index + 1}`,
-                description: `${checkpoint} seconds - you're on track!`,
-              });
-            }, checkpoint * 1000);
-          });
-        }
-        break;
-    }
-  };
+        // Remove blob after 8 seconds if not clicked
+        setTimeout(() => {
+          setPowerUpBlob(null);
+        }, 8000);
+      }
+    }, 15000 + Math.random() * 25000); // 15-40 seconds
 
-  const handleSuperpowerActivate = (type: string) => {
-    setActiveSuperpower(type);
-    setSuperpowersUsed(prev => [...prev, type]);
+    return () => clearInterval(spawnInterval);
+  }, [gameActive, gameState.isGameOver, powerUpBlob]);
+
+  const handlePowerUpClick = (type: string) => {
+    setActivePowerUp(type);
+    setPowerUpBlob(null);
     
-    if (type === 'hyperfocus_boost') {
-      setADHDSettings(prev => ({ ...prev, isHyperfocus: true }));
-      setIsDistracted(false);
-      setSensoryOverload(false);
-    } else if (type === 'time_clarity') {
-      setTimeSpeed(1);
-    }
-  };
-
-  const handleSuperpowerDeactivate = () => {
-    setActiveSuperpower(null);
-    if (activeSuperpower === 'hyperfocus_boost') {
-      setADHDSettings(prev => ({ ...prev, isHyperfocus: false }));
+    switch (type) {
+      case 'slow_time':
+        toast({ title: "⏰ Time slowed down!", description: "Timer runs at half speed for 15 seconds" });
+        // Implementation would slow down the timer
+        setTimeout(() => setActivePowerUp(null), 15000);
+        break;
+        
+      case 'reveal_letters':
+        toast({ title: "💡 Letters revealed!", description: "Irrelevant keys are grayed out" });
+        setTimeout(() => setActivePowerUp(null), 12000);
+        break;
+        
+      case 'remove_distraction':
+        toast({ title: "🧘 Distractions removed!", description: "No symptoms for 10 seconds" });
+        setKeyboardFrozen(false);
+        setLetterScrambling(false);
+        setColorBlindness(false);
+        setTimeout(() => setActivePowerUp(null), 10000);
+        break;
+        
+      case 'focus_mode':
+        toast({ title: "🎯 Focus mode!", description: "Only game elements visible" });
+        setTimeout(() => setActivePowerUp(null), 10000);
+        break;
     }
   };
 
   const handleKeyPress = useCallback((key: string) => {
-    if (gameState.isGameOver) return;
+    if (gameState.isGameOver || keyboardFrozen || contextSwitchActive) return;
     
-    // Noro assistance: reduce executive dysfunction delay when actively helping
-    const baseDelay = isExecutiveDysfunctionActive ? 2000 + Math.random() * 1000 : 0;
-    const assistanceReduction = noroGuidance ? 0.5 : 1; // 50% reduction if Noro is helping
-    const delay = baseDelay * assistanceReduction;
-    
-    setTimeout(() => {
-      if (key === 'ENTER') {
-        if (gameState.currentGuess.length === 5) {
-          const newGuesses = [...gameState.guesses, gameState.currentGuess];
-          const isWinner = gameState.currentGuess === gameState.targetWord;
-          const isGameOver = isWinner || newGuesses.length >= 6;
-          
-          setGameState(prev => ({
-            ...prev,
-            guesses: newGuesses,
-            currentGuess: '',
-            currentRow: prev.currentRow + 1,
-            isGameOver,
-            isWinner
-          }));
-          
-          // Clear Noro guidance after successful guess
-          if (noroGuidance) {
-            setNoroGuidance(null);
-            toast({
-              title: "🎉 Great work!",
-              description: "Noro's guidance helped you make progress!",
-            });
-          }
-          
+    if (key === 'ENTER') {
+      if (gameState.currentGuess.length === 5) {
+        const newGuesses = [...gameState.guesses, gameState.currentGuess];
+        const isWinner = gameState.currentGuess === gameState.targetWord;
+        const isGameOver = isWinner || newGuesses.length >= 6;
+        
+        setGameState(prev => ({
+          ...prev,
+          guesses: newGuesses,
+          currentGuess: '',
+          currentRow: prev.currentRow + 1,
+          isGameOver,
+          isWinner
+        }));
+        
+        if (isGameOver) {
+          setGameActive(false);
           if (isWinner) {
             toast({
-              title: "🎉 Amazing work!",
-              description: `You found it in ${newGuesses.length} tries! Your brain is incredible.`,
+              title: "🎉 Congratulations!",
+              description: `You found the word in ${newGuesses.length} tries!`,
             });
-          } else if (isGameOver) {
+          } else {
             toast({
-              title: "Good effort!",
-              description: `The word was ${gameState.targetWord}. Every attempt teaches us something.`,
+              title: "Game Over",
+              description: `The word was ${gameState.targetWord}`,
             });
           }
         }
-      } else if (key === 'BACKSPACE') {
-        setGameState(prev => ({
-          ...prev,
-          currentGuess: prev.currentGuess.slice(0, -1)
-        }));
-      } else if (key.length === 1 && gameState.currentGuess.length < 5) {
-        // Noro assistance: reduce typing errors when actively helping
-        let newGuess = gameState.currentGuess + key;
-        const errorReduction = noroGuidance ? 0.02 : 0.1; // Lower error rate with Noro
-        
-        if (Math.random() < errorReduction && !adhdSettings.isAccommodated && newGuess.length >= 2) {
-          const chars = newGuess.split('');
-          [chars[chars.length - 1], chars[chars.length - 2]] = [chars[chars.length - 2], chars[chars.length - 1]];
-          newGuess = chars.join('');
-        }
-        
-        setGameState(prev => ({
-          ...prev,
-          currentGuess: newGuess
-        }));
       }
-    }, delay);
-  }, [gameState, isExecutiveDysfunctionActive, adhdSettings.isAccommodated, toast, noroGuidance]);
+    } else if (key === 'BACKSPACE') {
+      setGameState(prev => ({
+        ...prev,
+        currentGuess: prev.currentGuess.slice(0, -1)
+      }));
+    } else if (key.length === 1 && gameState.currentGuess.length < 5) {
+      let newGuess = gameState.currentGuess + key;
+      
+      // Letter scrambling effect
+      if (letterScrambling && newGuess.length >= 2) {
+        const chars = newGuess.split('');
+        // Randomly swap some characters
+        for (let i = 0; i < chars.length - 1; i++) {
+          if (Math.random() < 0.4) {
+            [chars[i], chars[i + 1]] = [chars[i + 1], chars[i]];
+          }
+        }
+        newGuess = chars.join('');
+      }
+      
+      setGameState(prev => ({
+        ...prev,
+        currentGuess: newGuess
+      }));
+    }
+  }, [gameState, keyboardFrozen, contextSwitchActive, letterScrambling, toast]);
 
   const resetGame = () => {
     setGameState({
@@ -300,11 +258,14 @@ const Index = () => {
       currentRow: 0
     });
     setTimeElapsed(0);
-    setTimeSpeed(1);
-    setSuperpowersUsed([]);
-    setSymptomsExperienced([]);
-    setNoroAssistanceCount(0);
-    setGameEnded(false);
+    setGameActive(true);
+    setKeyboardFrozen(false);
+    setLetterScrambling(false);
+    setColorBlindness(false);
+    setHyperfocusMode(false);
+    setContextSwitchActive(false);
+    setActivePowerUp(null);
+    setPowerUpBlob(null);
   };
 
   const formatTime = (seconds: number) => {
@@ -314,10 +275,10 @@ const Index = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-background transition-all duration-500 ${sensoryOverload && !activeSuperpower && !focusMode ? 'animate-pulse' : ''}`}>
+    <div className={`min-h-screen bg-background transition-all duration-500 ${activePowerUp === 'focus_mode' ? 'bg-black' : ''}`}>
       <div className="container mx-auto max-w-lg p-4">
         {/* Header */}
-        <header className="text-center py-4 border-b border-border">
+        <header className={`text-center py-4 border-b border-border ${activePowerUp === 'focus_mode' ? 'opacity-0' : ''}`}>
           <h1 className="text-2xl font-bold text-foreground">ADHD Wordle</h1>
           <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
             <span>Time: {formatTime(timeElapsed)}</span>
@@ -326,9 +287,9 @@ const Index = () => {
             </span>
             <span>Attempt: {gameState.currentRow + 1}/6</span>
           </div>
-          {focusMode && (
+          {hyperfocusMode && (
             <div className="mt-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-              🧘 Noro Focus Mode Active
+              🎯 Hyperfocus Mode - Time moving faster!
             </div>
           )}
         </header>
@@ -338,11 +299,8 @@ const Index = () => {
           <div className="py-4 space-y-4">
             <GameSummary 
               gameState={gameState}
-              adhdSettings={adhdSettings}
               timeElapsed={timeElapsed}
-              superpowersUsed={superpowersUsed}
-              symptomsExperienced={symptomsExperienced}
-              noroAssistanceCount={noroAssistanceCount}
+              correctWord={gameState.targetWord}
             />
             
             <div className="text-center">
@@ -357,66 +315,60 @@ const Index = () => {
         ) : (
           <>
             {/* Accessibility Controls */}
-            <AccessibilityControls 
-              settings={adhdSettings}
-              onSettingsChange={setADHDSettings}
-            />
-
-            {/* Superpower Manager */}
-            <SuperpowerManager 
-              gameState={gameState}
-              adhdSettings={adhdSettings}
-              onSuperpowerActivate={handleSuperpowerActivate}
-              onSuperpowerDeactivate={handleSuperpowerDeactivate}
-            />
+            <div className={activePowerUp === 'focus_mode' ? 'opacity-0' : ''}>
+              <AccessibilityControls 
+                settings={adhdSettings}
+                onSettingsChange={setADHDSettings}
+              />
+            </div>
 
             {/* Main Game Area */}
             <div className="py-4 space-y-4">
               <GameGrid 
                 gameState={gameState}
-                adhdSettings={{
-                  ...adhdSettings,
-                  isHyperfocus: adhdSettings.isHyperfocus || activeSuperpower === 'hyperfocus_boost' || focusMode
-                }}
-                sensoryOverload={sensoryOverload && activeSuperpower !== 'hyperfocus_boost' && !focusMode}
+                colorBlindness={colorBlindness && activePowerUp !== 'remove_distraction'}
+                hyperfocusMode={hyperfocusMode}
               />
               
               <GameKeyboard 
                 onKeyPress={handleKeyPress}
                 gameState={gameState}
-                isExecutiveDysfunctionActive={isExecutiveDysfunctionActive && activeSuperpower !== 'hyperfocus_boost' && !focusMode}
-                adhdSettings={{
-                  ...adhdSettings,
-                  isHyperfocus: adhdSettings.isHyperfocus || activeSuperpower === 'hyperfocus_boost' || focusMode
-                }}
+                frozen={keyboardFrozen && activePowerUp !== 'remove_distraction'}
+                revealLetters={activePowerUp === 'reveal_letters'}
+                targetWord={gameState.targetWord}
               />
             </div>
 
-            {/* Noro Assistant */}
-            <NoroAssistant 
-              gameState={gameState}
-              adhdSettings={adhdSettings}
-              timeRemaining={timeRemaining}
-              onAssist={handleNoroAssist}
-            />
+            {/* Status indicators */}
+            {keyboardFrozen && activePowerUp !== 'remove_distraction' && (
+              <div className="text-center text-sm text-red-600 mt-2">
+                ⏳ Keyboard frozen...
+              </div>
+            )}
 
-            {/* ADHD Symptom Manager */}
-            <SymptomManager 
-              adhdSettings={{
-                ...adhdSettings,
-                isHyperfocus: adhdSettings.isHyperfocus || activeSuperpower === 'hyperfocus_boost' || focusMode
-              }}
-              gameState={gameState}
-              onDistract={setIsDistracted}
-            />
-
-            {/* Distraction Layer */}
-            <DistractionLayer 
-              isActive={isDistracted && activeSuperpower !== 'hyperfocus_boost' && !focusMode}
-              intensity={adhdSettings.intensity}
-              onClose={() => setIsDistracted(false)}
-            />
+            {letterScrambling && activePowerUp !== 'remove_distraction' && (
+              <div className="text-center text-sm text-yellow-600 mt-2">
+                🔀 Letters scrambling...
+              </div>
+            )}
           </>
+        )}
+
+        {/* Power-up blob */}
+        {powerUpBlob && (
+          <PowerUpBlob 
+            x={powerUpBlob.x}
+            y={powerUpBlob.y}
+            type={powerUpBlob.type}
+            onClick={() => handlePowerUpClick(powerUpBlob.type)}
+          />
+        )}
+
+        {/* Context switch popup */}
+        {contextSwitchActive && (
+          <ContextSwitchPopup 
+            onComplete={() => setContextSwitchActive(false)}
+          />
         )}
       </div>
     </div>
