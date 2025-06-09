@@ -92,7 +92,7 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [gameActive, gameState.isGameOver, timeMultiplier, symptomsActive]);
 
-  // ADHD Symptoms - Fixed timing with proper cooldowns and balanced frequencies
+  // ADHD Symptoms - Improved timing with better balance
   useEffect(() => {
     if (!gameActive || gameState.isGameOver || !symptomsActive) return;
     
@@ -105,31 +105,27 @@ const Index = () => {
       const currentTime = Date.now();
       const timeSinceLastSymptom = currentTime - lastSymptomTime;
       
-      // Minimum 8 seconds between symptoms (cooldown)
-      if (timeSinceLastSymptom < 8000) {
+      // Minimum 10 seconds between symptoms (increased cooldown)
+      if (timeSinceLastSymptom < 10000) {
         console.log('⏳ Symptom on cooldown, skipping...');
         return;
       }
       
-      // Check if any symptom is currently active (except context switch which can overlap)
-      const anySymptomActive = keyboardFrozen || letterScrambling || colorBlindness;
-      if (anySymptomActive) {
-        console.log('🚫 Symptom already active, skipping...');
-        return;
-      }
+      // Check if any major symptom is currently active
+      const majorSymptomActive = keyboardFrozen || letterScrambling || colorBlindness;
       
       const random = Math.random();
       console.log('🎲 Symptom check:', random);
       
-      // Reduced chance for symptoms to trigger (25% instead of 30%)
-      if (random < 0.25) {
+      // Reduced chance for symptoms to trigger (20% instead of 25%)
+      if (random < 0.20) {
         const symptomRoll = Math.random();
         console.log('🎯 Symptom type roll:', symptomRoll);
         
         setLastSymptomTime(currentTime);
         
         // Balanced frequencies - equal 25% chance for each symptom type
-        if (symptomRoll < 0.25) {
+        if (symptomRoll < 0.25 && !majorSymptomActive) {
           console.log('🔒 TRIGGERING: Keyboard freeze');
           setKeyboardFrozen(true);
           setTimeout(() => {
@@ -137,7 +133,7 @@ const Index = () => {
             console.log('🔓 Keyboard unfrozen');
           }, 3000); // 3 seconds duration
         }
-        else if (symptomRoll < 0.5) {
+        else if (symptomRoll < 0.5 && !majorSymptomActive) {
           console.log('🔀 TRIGGERING: Letter scrambling');
           setLetterScrambling(true);
           setTimeout(() => {
@@ -145,7 +141,7 @@ const Index = () => {
             console.log('✅ Letter scrambling stopped');
           }, 4000); // 4 seconds duration
         }
-        else if (symptomRoll < 0.75) {
+        else if (symptomRoll < 0.75 && !majorSymptomActive) {
           console.log('👁️ TRIGGERING: Color blindness');
           setColorBlindness(true);
           setTimeout(() => {
@@ -153,13 +149,14 @@ const Index = () => {
             console.log('🌈 Colors restored');
           }, 5000); // 5 seconds duration
         }
-        else {
+        else if (symptomRoll < 1.0) {
+          // Context switch can overlap with other symptoms
           console.log('🎪 TRIGGERING: Context switch');
           setContextSwitchActive(true);
           // Context switch will be cleared by the popup component
         }
       }
-    }, 5000); // Check every 5 seconds
+    }, 6000); // Check every 6 seconds (increased from 5)
 
     return () => {
       console.log('🧹 Cleaning up symptoms interval');
@@ -173,7 +170,7 @@ const Index = () => {
     if (activePowerUp === 'remove_distraction') return;
 
     const hyperfocusInterval = setInterval(() => {
-      if (Math.random() < 0.15 && !hyperfocusMode) { // 15% chance
+      if (Math.random() < 0.12 && !hyperfocusMode) { // Reduced to 12% chance
         console.log('🎯 TRIGGERING: Hyperfocus mode');
         setHyperfocusMode(true);
         setTimeout(() => {
@@ -181,7 +178,7 @@ const Index = () => {
           console.log('🎯 Hyperfocus deactivated');
         }, 8000);
       }
-    }, 12000); // Check every 12 seconds
+    }, 15000); // Check every 15 seconds (increased from 12)
 
     return () => clearInterval(hyperfocusInterval);
   }, [gameActive, gameState.isGameOver, symptomsActive, hyperfocusMode, activePowerUp]);
@@ -193,7 +190,7 @@ const Index = () => {
     console.log('💡 Starting power-up spawning system');
 
     const spawnInterval = setInterval(() => {
-      if (Math.random() < 0.4) { // 40% chance
+      if (Math.random() < 0.3) { // Reduced to 30% chance
         const powerUpTypes = ['slow_time', 'reveal_letters', 'remove_distraction', 'focus_mode'];
         const randomType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
         
@@ -204,9 +201,9 @@ const Index = () => {
         setTimeout(() => {
           setPowerUpVisible(false);
           console.log('💡 Power-up disappeared');
-        }, 10000); // 10 seconds visibility
+        }, 12000); // 12 seconds visibility (increased from 10)
       }
-    }, 8000); // Check every 8 seconds
+    }, 10000); // Check every 10 seconds (increased from 8)
 
     return () => {
       console.log('🧹 Cleaning up power-up interval');
@@ -240,7 +237,7 @@ const Index = () => {
         setContextSwitchActive(false);
         setHyperfocusMode(false);
         // Reset the last symptom time to add extra cooldown
-        setLastSymptomTime(Date.now() + 5000); // Add 5 seconds extra cooldown
+        setLastSymptomTime(Date.now() + 8000); // Add 8 seconds extra cooldown
         setTimeout(() => setActivePowerUp(null), 15000); // 15 seconds duration
         break;
         
@@ -336,7 +333,7 @@ const Index = () => {
           ? 'bg-black' 
           : 'bg-background'
     }`}>
-      {/* Hyperfocus overlay */}
+      {/* Hyperfocus overlay - Enhanced with 90% darkness */}
       {hyperfocusMode && (
         <div className="fixed inset-0 bg-black bg-opacity-90 z-10 pointer-events-none" />
       )}
@@ -345,8 +342,8 @@ const Index = () => {
         {/* Header */}
         <header className={`text-center py-4 border-b border-border ${
           activePowerUp === 'focus_mode' ? 'opacity-0' : 
-          hyperfocusMode ? 'opacity-100 glow' : ''
-        }`}>
+          hyperfocusMode ? 'opacity-100' : ''
+        } ${hyperfocusMode ? 'shadow-lg shadow-white/50 bg-background/10 backdrop-blur-sm rounded-lg border border-white/20' : ''}`}>
           <h1 className="text-2xl font-bold text-foreground">ADHD Wordle</h1>
           <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
             <span>Time: {formatTime(timeElapsed)}</span>
@@ -409,7 +406,7 @@ const Index = () => {
             </div>
 
             {/* Main Game Area */}
-            <div className={`py-4 space-y-4 ${hyperfocusMode ? 'glow' : ''}`}>
+            <div className={`py-4 space-y-4 ${hyperfocusMode ? 'shadow-lg shadow-white/50 bg-background/10 backdrop-blur-sm rounded-lg border border-white/20' : ''}`}>
               <GameGrid 
                 gameState={gameState}
                 colorBlindness={colorBlindness && activePowerUp !== 'remove_distraction'}
