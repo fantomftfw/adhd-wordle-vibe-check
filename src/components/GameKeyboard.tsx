@@ -41,57 +41,24 @@ export const GameKeyboard = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onKeyPress, frozen]);
 
-  const getKeyStatus = (key: string) => {
-    if (key === 'ENTER' || key === 'BACKSPACE') return '';
-    
-    for (const guess of gameState.guesses) {
-      if (guess.includes(key)) {
-        for (let i = 0; i < guess.length; i++) {
-          if (guess[i] === key) {
-            if (gameState.targetWord[i] === key) return 'correct';
-            if (gameState.targetWord.includes(key)) return 'present';
-            return 'absent';
-          }
-        }
-      }
-    }
-    return '';
-  };
-
   const renderKey = (key: string) => {
-    const status = getKeyStatus(key);
     const isTargetLetter = targetWord.includes(key);
     
     let keyClass = 'px-3 py-4 rounded font-semibold transition-all duration-200 touch-manipulation ';
     
-    // Base styling
+    // Base styling - NEVER change colors based on guesses
     if (key === 'ENTER' || key === 'BACKSPACE') {
       keyClass += 'px-4 bg-secondary text-secondary-foreground hover:bg-secondary/80 ';
     } else {
       keyClass += 'bg-muted text-muted-foreground hover:bg-muted/80 ';
     }
     
-    // Power-up: reveal letters effect
+    // Power-up: reveal letters effect (only visual highlight, no color change)
     if (revealLetters && key !== 'ENTER' && key !== 'BACKSPACE') {
       if (!isTargetLetter) {
-        keyClass += 'opacity-30 bg-gray-200 ';
+        keyClass += 'opacity-30 ';
       } else {
-        keyClass += 'ring-2 ring-blue-400 bg-blue-50 ';
-      }
-    }
-    
-    // Status colors (only if not in reveal mode or if it's a target letter)
-    if (!revealLetters || isTargetLetter) {
-      switch (status) {
-        case 'correct':
-          keyClass += 'bg-green-500 text-white hover:bg-green-600 ';
-          break;
-        case 'present':
-          keyClass += 'bg-yellow-500 text-white hover:bg-yellow-600 ';
-          break;
-        case 'absent':
-          keyClass += 'bg-gray-500 text-white hover:bg-gray-600 ';
-          break;
+        keyClass += 'ring-2 ring-blue-400 ';
       }
     }
     

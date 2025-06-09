@@ -1,19 +1,10 @@
 
-import { useState, useEffect } from 'react';
+import { Bulb } from 'lucide-react';
 
 interface PowerUpBlobProps {
-  x: number;
-  y: number;
   type: string;
   onClick: () => void;
 }
-
-const POWER_UP_ICONS = {
-  slow_time: '⏰',
-  reveal_letters: '💡',
-  remove_distraction: '🧘',
-  focus_mode: '🎯'
-};
 
 const POWER_UP_NAMES = {
   slow_time: 'Slow Time',
@@ -22,43 +13,24 @@ const POWER_UP_NAMES = {
   focus_mode: 'Focus Mode'
 };
 
-export const PowerUpBlob = ({ x, y, type, onClick }: PowerUpBlobProps) => {
-  const [position, setPosition] = useState({ x, y });
-
-  useEffect(() => {
-    const fallInterval = setInterval(() => {
-      setPosition(prev => ({
-        ...prev,
-        y: prev.y + 2
-      }));
-    }, 50);
-
-    return () => clearInterval(fallInterval);
-  }, []);
-
+export const PowerUpBlob = ({ type, onClick }: PowerUpBlobProps) => {
   return (
     <div
-      className="fixed z-50 cursor-pointer animate-pulse"
+      className="fixed bottom-6 right-6 z-50 cursor-pointer animate-pulse"
       style={{
-        left: `${position.x}px`,
-        top: `${position.y}px`,
         background: 'linear-gradient(45deg, #6366f1, #8b5cf6, #ec4899)',
         borderRadius: '50%',
-        width: '60px',
-        height: '60px',
+        width: '64px',
+        height: '64px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        boxShadow: '0 4px 20px rgba(99, 102, 241, 0.4)'
+        boxShadow: '0 8px 32px rgba(99, 102, 241, 0.4)'
       }}
       onClick={onClick}
+      title={POWER_UP_NAMES[type as keyof typeof POWER_UP_NAMES]}
     >
-      <div className="text-center text-white">
-        <div className="text-lg">{POWER_UP_ICONS[type as keyof typeof POWER_UP_ICONS]}</div>
-        <div className="text-xs font-semibold">
-          {POWER_UP_NAMES[type as keyof typeof POWER_UP_NAMES]}
-        </div>
-      </div>
+      <Bulb className="w-8 h-8 text-white" />
     </div>
   );
 };

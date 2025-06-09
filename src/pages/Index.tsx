@@ -59,7 +59,8 @@ const Index = () => {
   
   // Power-ups
   const [activePowerUp, setActivePowerUp] = useState<string | null>(null);
-  const [powerUpBlob, setPowerUpBlob] = useState<{ x: number; y: number; type: string } | null>(null);
+  const [powerUpVisible, setPowerUpVisible] = useState(false);
+  const [powerUpType, setPowerUpType] = useState<string>('');
 
   const timeRemaining = Math.max(0, GAME_DURATION - timeElapsed);
 
@@ -88,88 +89,106 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [gameActive, gameState.isGameOver, hyperfocusMode, gameState.targetWord, toast]);
 
-  // ADHD Symptoms - only after 20 seconds
+  // ADHD Symptoms - only after 20 seconds and when symptoms should be active
   useEffect(() => {
-    if (timeElapsed < SYMPTOMS_START_TIME || !gameActive || gameState.isGameOver || activePowerUp) return;
+    if (timeElapsed < SYMPTOMS_START_TIME || !gameActive || gameState.isGameOver) return;
+    if (activePowerUp === 'remove_distraction') return; // Skip symptoms if distraction removal is active
 
     const symptomInterval = setInterval(() => {
       const random = Math.random();
       
-      // Keyboard freeze (15% chance)
-      if (random < 0.15 && !keyboardFrozen) {
+      // Keyboard freeze (20% chance)
+      if (random < 0.20 && !keyboardFrozen) {
         setKeyboardFrozen(true);
-        setTimeout(() => setKeyboardFrozen(false), 2000 + Math.random() * 1000);
+        console.log('Keyboard frozen activated');
+        setTimeout(() => {
+          setKeyboardFrozen(false);
+          console.log('Keyboard frozen deactivated');
+        }, 2000 + Math.random() * 1000);
       }
       
-      // Letter scrambling (10% chance)
-      else if (random < 0.25 && !letterScrambling) {
+      // Letter scrambling (15% chance)
+      else if (random < 0.35 && !letterScrambling) {
         setLetterScrambling(true);
-        setTimeout(() => setLetterScrambling(false), 3000 + Math.random() * 2000);
+        console.log('Letter scrambling activated');
+        setTimeout(() => {
+          setLetterScrambling(false);
+          console.log('Letter scrambling deactivated');
+        }, 3000 + Math.random() * 2000);
       }
       
-      // Color blindness (12% chance)
-      else if (random < 0.37 && !colorBlindness) {
+      // Color blindness (15% chance)
+      else if (random < 0.50 && !colorBlindness) {
         setColorBlindness(true);
-        setTimeout(() => setColorBlindness(false), 3000 + Math.random() * 2000);
+        console.log('Color blindness activated');
+        setTimeout(() => {
+          setColorBlindness(false);
+          console.log('Color blindness deactivated');
+        }, 3000 + Math.random() * 2000);
       }
       
-      // Hyperfocus mode (8% chance)
-      else if (random < 0.45 && !hyperfocusMode) {
+      // Hyperfocus mode (10% chance)
+      else if (random < 0.60 && !hyperfocusMode) {
         setHyperfocusMode(true);
+        console.log('Hyperfocus mode activated');
         toast({
           title: "🎯 Hyperfocus activated!",
           description: "All distractions cleared, but time moves faster!",
         });
-        setTimeout(() => setHyperfocusMode(false), 10000);
+        setTimeout(() => {
+          setHyperfocusMode(false);
+          console.log('Hyperfocus mode deactivated');
+        }, 10000);
       }
       
-      // Context switching (5% chance)
-      else if (random < 0.50 && !contextSwitchActive) {
+      // Context switching (8% chance)
+      else if (random < 0.68 && !contextSwitchActive) {
         setContextSwitchActive(true);
+        console.log('Context switch activated');
       }
-    }, 3000 + Math.random() * 7000);
+    }, 4000 + Math.random() * 6000); // 4-10 seconds
 
     return () => clearInterval(symptomInterval);
   }, [timeElapsed, gameActive, gameState.isGameOver, keyboardFrozen, letterScrambling, colorBlindness, hyperfocusMode, contextSwitchActive, activePowerUp, toast]);
 
-  // Power-up blob spawning
+  // Power-up spawning
   useEffect(() => {
-    if (!gameActive || gameState.isGameOver || powerUpBlob) return;
+    if (!gameActive || gameState.isGameOver || powerUpVisible) return;
 
     const spawnInterval = setInterval(() => {
-      if (Math.random() < 0.1) { // 10% chance every interval
+      if (Math.random() < 0.15) { // 15% chance every interval
         const powerUpTypes = ['slow_time', 'reveal_letters', 'remove_distraction', 'focus_mode'];
         const randomType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
         
-        setPowerUpBlob({
-          x: Math.random() * (window.innerWidth - 100),
-          y: -50,
-          type: randomType
-        });
+        setPowerUpType(randomType);
+        setPowerUpVisible(true);
+        console.log('Power-up spawned:', randomType);
         
-        // Remove blob after 8 seconds if not clicked
+        // Remove power-up after 10 seconds if not clicked
         setTimeout(() => {
-          setPowerUpBlob(null);
-        }, 8000);
+          setPowerUpVisible(false);
+          console.log('Power-up disappeared');
+        }, 10000);
       }
     }, 15000 + Math.random() * 25000); // 15-40 seconds
 
     return () => clearInterval(spawnInterval);
-  }, [gameActive, gameState.isGameOver, powerUpBlob]);
+  }, [gameActive, gameState.isGameOver, powerUpVisible]);
 
   const handlePowerUpClick = (type: string) => {
     setActivePowerUp(type);
-    setPowerUpBlob(null);
+    setPowerUpVisible(false);
+    console.log('Power-up activated:', type);
     
     switch (type) {
       case 'slow_time':
         toast({ title: "⏰ Time slowed down!", description: "Timer runs at half speed for 15 seconds" });
-        // Implementation would slow down the timer
+        // Note: Implementation would need to modify the timer interval
         setTimeout(() => setActivePowerUp(null), 15000);
         break;
         
       case 'reveal_letters':
-        toast({ title: "💡 Letters revealed!", description: "Irrelevant keys are grayed out" });
+        toast({ title: "💡 Letters revealed!", description: "Irrelevant keys are highlighted" });
         setTimeout(() => setActivePowerUp(null), 12000);
         break;
         
@@ -354,13 +373,11 @@ const Index = () => {
           </>
         )}
 
-        {/* Power-up blob */}
-        {powerUpBlob && (
+        {/* Power-up floating action button */}
+        {powerUpVisible && (
           <PowerUpBlob 
-            x={powerUpBlob.x}
-            y={powerUpBlob.y}
-            type={powerUpBlob.type}
-            onClick={() => handlePowerUpClick(powerUpBlob.type)}
+            type={powerUpType}
+            onClick={() => handlePowerUpClick(powerUpType)}
           />
         )}
 
