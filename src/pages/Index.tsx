@@ -89,105 +89,109 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [gameActive, gameState.isGameOver, hyperfocusMode, gameState.targetWord, toast]);
 
-  // ADHD Symptoms - start after 20 seconds
+  // ADHD Symptoms - simplified logic
   useEffect(() => {
-    if (timeElapsed < SYMPTOMS_START_TIME || !gameActive || gameState.isGameOver) return;
-    if (activePowerUp === 'remove_distraction') return; // Skip symptoms if distraction removal is active
+    if (!gameActive || gameState.isGameOver) return;
+    if (timeElapsed < SYMPTOMS_START_TIME) return;
+    if (activePowerUp === 'remove_distraction') return;
 
-    console.log('Starting ADHD symptoms at time:', timeElapsed);
+    console.log('🧠 ADHD symptoms system active at time:', timeElapsed);
 
     const symptomInterval = setInterval(() => {
       const random = Math.random();
-      console.log('Symptom check - random value:', random, 'time:', timeElapsed);
+      console.log('🎲 Symptom roll:', random, 'at time:', timeElapsed);
       
-      // Keyboard freeze (25% chance every interval)
-      if (random < 0.25 && !keyboardFrozen) {
-        console.log('Activating keyboard freeze');
-        setKeyboardFrozen(true);
-        toast({
-          title: "🔒 Keyboard frozen",
-          description: "Focus interrupted...",
-        });
-        setTimeout(() => {
-          setKeyboardFrozen(false);
-          console.log('Keyboard freeze deactivated');
-        }, 2000 + Math.random() * 1000);
+      // Much higher chance for symptoms to trigger
+      if (random < 0.7) { // 70% chance every 2-4 seconds
+        const symptomType = Math.random();
+        
+        if (symptomType < 0.3 && !keyboardFrozen) {
+          console.log('🔒 ACTIVATING: Keyboard freeze');
+          setKeyboardFrozen(true);
+          toast({
+            title: "🔒 Focus interrupted!",
+            description: "Keyboard frozen for a moment...",
+          });
+          setTimeout(() => {
+            setKeyboardFrozen(false);
+            console.log('🔓 Keyboard unfrozen');
+          }, 1500 + Math.random() * 1000);
+        }
+        else if (symptomType < 0.6 && !letterScrambling) {
+          console.log('🔀 ACTIVATING: Letter scrambling');
+          setLetterScrambling(true);
+          toast({
+            title: "🔀 Letters scrambling!",
+            description: "Words getting mixed up...",
+          });
+          setTimeout(() => {
+            setLetterScrambling(false);
+            console.log('✅ Letter scrambling stopped');
+          }, 2000 + Math.random() * 1500);
+        }
+        else if (symptomType < 0.8 && !colorBlindness) {
+          console.log('👁️ ACTIVATING: Color blindness');
+          setColorBlindness(true);
+          toast({
+            title: "👁️ Colors fading!",
+            description: "Visual feedback disrupted...",
+          });
+          setTimeout(() => {
+            setColorBlindness(false);
+            console.log('🌈 Colors restored');
+          }, 2500 + Math.random() * 1500);
+        }
+        else if (symptomType < 0.95 && !contextSwitchActive) {
+          console.log('🎪 ACTIVATING: Context switch');
+          setContextSwitchActive(true);
+          toast({
+            title: "🎪 Context switch!",
+            description: "Something else grabbed your attention...",
+          });
+        }
+        else if (!hyperfocusMode) {
+          console.log('🎯 ACTIVATING: Hyperfocus mode');
+          setHyperfocusMode(true);
+          toast({
+            title: "🎯 Hyperfocus activated!",
+            description: "All distractions cleared, but time moves faster!",
+          });
+          setTimeout(() => {
+            setHyperfocusMode(false);
+            console.log('🎯 Hyperfocus deactivated');
+          }, 8000);
+        }
       }
-      
-      // Letter scrambling (20% chance)
-      else if (random < 0.45 && !letterScrambling) {
-        console.log('Activating letter scrambling');
-        setLetterScrambling(true);
-        toast({
-          title: "🔀 Letters scrambling",
-          description: "Words getting mixed up...",
-        });
-        setTimeout(() => {
-          setLetterScrambling(false);
-          console.log('Letter scrambling deactivated');
-        }, 3000 + Math.random() * 2000);
-      }
-      
-      // Color blindness (20% chance)
-      else if (random < 0.65 && !colorBlindness) {
-        console.log('Activating color blindness');
-        setColorBlindness(true);
-        toast({
-          title: "👁️ Colors fading",
-          description: "Visual feedback disrupted...",
-        });
-        setTimeout(() => {
-          setColorBlindness(false);
-          console.log('Color blindness deactivated');
-        }, 3000 + Math.random() * 2000);
-      }
-      
-      // Hyperfocus mode (15% chance)
-      else if (random < 0.80 && !hyperfocusMode) {
-        console.log('Activating hyperfocus mode');
-        setHyperfocusMode(true);
-        toast({
-          title: "🎯 Hyperfocus activated!",
-          description: "All distractions cleared, but time moves faster!",
-        });
-        setTimeout(() => {
-          setHyperfocusMode(false);
-          console.log('Hyperfocus mode deactivated');
-        }, 10000);
-      }
-      
-      // Context switching (10% chance)
-      else if (random < 0.90 && !contextSwitchActive) {
-        console.log('Activating context switch');
-        setContextSwitchActive(true);
-      }
-    }, 3000 + Math.random() * 4000); // Every 3-7 seconds
+    }, 2000 + Math.random() * 2000); // Every 2-4 seconds
 
-    return () => clearInterval(symptomInterval);
-  }, [timeElapsed, gameActive, gameState.isGameOver, keyboardFrozen, letterScrambling, colorBlindness, hyperfocusMode, contextSwitchActive, activePowerUp, toast]);
+    return () => {
+      console.log('🧹 Cleaning up symptoms interval');
+      clearInterval(symptomInterval);
+    };
+  }, [timeElapsed, gameActive, gameState.isGameOver, activePowerUp, keyboardFrozen, letterScrambling, colorBlindness, hyperfocusMode, contextSwitchActive, toast]);
 
-  // Power-up spawning - only after symptoms start (after 20 seconds)
+  // Power-up spawning - only after symptoms start
   useEffect(() => {
     if (timeElapsed < SYMPTOMS_START_TIME || !gameActive || gameState.isGameOver || powerUpVisible) return;
 
-    console.log('Power-up spawning check at time:', timeElapsed);
+    console.log('💡 Power-up spawning check at time:', timeElapsed);
 
     const spawnInterval = setInterval(() => {
-      if (Math.random() < 0.20) { // 20% chance every interval
+      if (Math.random() < 0.3) { // 30% chance every interval
         const powerUpTypes = ['slow_time', 'reveal_letters', 'remove_distraction', 'focus_mode'];
         const randomType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
         
         setPowerUpType(randomType);
         setPowerUpVisible(true);
-        console.log('Power-up spawned:', randomType);
+        console.log('💡 Power-up spawned:', randomType);
         
-        // Remove power-up after 10 seconds if not clicked
+        // Remove power-up after 8 seconds if not clicked
         setTimeout(() => {
           setPowerUpVisible(false);
-          console.log('Power-up disappeared');
-        }, 10000);
+          console.log('💡 Power-up disappeared');
+        }, 8000);
       }
-    }, 10000 + Math.random() * 15000); // Every 10-25 seconds
+    }, 8000 + Math.random() * 12000); // Every 8-20 seconds
 
     return () => clearInterval(spawnInterval);
   }, [timeElapsed, gameActive, gameState.isGameOver, powerUpVisible]);
@@ -322,6 +326,11 @@ const Index = () => {
             </span>
             <span>Attempt: {gameState.currentRow + 1}/6</span>
           </div>
+          {timeElapsed >= SYMPTOMS_START_TIME && (
+            <div className="mt-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+              🧠 ADHD Mode Active - Symptoms may occur
+            </div>
+          )}
           {hyperfocusMode && (
             <div className="mt-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
               🎯 Hyperfocus Mode - Time moving faster!
