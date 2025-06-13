@@ -53,7 +53,7 @@ const FAKE_NOTIFICATIONS = [
 
 const GamePage = () => {
 
-  const handleShare = () => {
+  const handleCopyToClipboard = () => {
     const title = `ADHD Wordle ${gameState.guesses.length}/6`;
     const emojiGrid = gameState.statuses
       .map(row =>
@@ -79,6 +79,37 @@ const GamePage = () => {
       toast.error('Could not copy results.');
       console.error('Failed to copy: ', err);
     });
+  };
+
+  const handleShareOnX = () => {
+    const title = `I solved the ADHD Wordle! ${gameState.isWinner ? `${gameState.guesses.length}/6 tries` : '🧠'}`;
+    const emojiGrid = gameState.statuses
+      .map(row =>
+        row
+          .map(status => {
+            switch (status) {
+              case 'correct':
+                return '🟩';
+              case 'present':
+                return '🟨';
+              default:
+                // Using a white square for better visibility on X
+                return '⬜';
+            }
+          })
+          .join('')
+      )
+      .join('\n');
+
+    const text = `${title}\n\n${emojiGrid}\n\nCan you beat my score?`;
+    const url = 'https://wordleadhd.netlify.app/'; // The URL to the game
+    const hashtags = 'ADHD,Wordle,BrainGames,VibeCheck';
+
+    // Construct the X intent URL
+    const xUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}&hashtags=${encodeURIComponent(hashtags)}`;
+
+    // Open the URL in a new tab
+    window.open(xUrl, '_blank', 'noopener,noreferrer');
   };
   
   const [gameState, setGameState] = useState<GameState>(initialGameState);
@@ -497,11 +528,20 @@ const GamePage = () => {
                 Play Again
               </button>
               <button
-                onClick={handleShare}
+                onClick={handleCopyToClipboard}
                 className="bg-secondary text-secondary-foreground px-6 py-2 rounded-md hover:bg-secondary/90 transition-colors flex items-center gap-2"
               >
                 <Share2 className="w-4 h-4" />
-                Share
+                Copy Results
+              </button>
+              <button
+                onClick={handleShareOnX}
+                className="bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 transition-colors flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-twitter-x" viewBox="0 0 16 16">
+                  <path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.6.75ZM11.46 13.812h1.57L4.34 2.188H2.76l8.7 11.624Z"/>
+                </svg>
+                Share on X
               </button>
             </div>
           </div>
