@@ -6,8 +6,11 @@ import { AccessibilityControls } from '@/components/AccessibilityControls';
 import { GameSummary } from '@/components/GameSummary';
 import { PowerUpBlob } from '@/components/PowerUpBlob';
 import { ContextSwitchPopup } from '@/components/ContextSwitchPopup';
+import { getGuessStatuses, LetterStatus } from '@/lib/wordleUtils';
+import { solutions } from '@/lib/solutions';
+import { Toaster } from "@/components/ui/sonner"
+import { toast } from "sonner"
 
-const WORD_LIST = ['FOCUS', 'BRAIN', 'CHAOS', 'SPARK', 'DRIFT', 'STORM', 'PEACE', 'BURST', 'GLOW', 'RUSH'];
 const GAME_DURATION = 300; // 5 minutes
 const SYMPTOMS_START_TIME = 20; // Start symptoms after 20 seconds
 
@@ -19,24 +22,28 @@ export interface ADHDSettings {
 }
 
 export interface GameState {
+  targetWord: string;
   guesses: string[];
+  statuses: LetterStatus[][];
+  currentRow: number;
   currentGuess: string;
   isGameOver: boolean;
   isWinner: boolean;
-  targetWord: string;
-  currentRow: number;
 }
+
+const initialGameState: GameState = {
+  targetWord: solutions[Math.floor(Math.random() * solutions.length)].toUpperCase(),
+  guesses: [],
+  statuses: [],
+  currentRow: 0,
+  currentGuess: '',
+  isGameOver: false,
+  isWinner: false,
+};
 
 const Index = () => {
   
-  const [gameState, setGameState] = useState<GameState>({
-    guesses: [],
-    currentGuess: '',
-    isGameOver: false,
-    isWinner: false,
-    targetWord: WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)],
-    currentRow: 0
-  });
+  const [gameState, setGameState] = useState<GameState>(initialGameState);
 
   const [adhdSettings, setADHDSettings] = useState<ADHDSettings>({
     intensity: 3,
@@ -62,6 +69,7 @@ const Index = () => {
   const [powerUpVisible, setPowerUpVisible] = useState(false);
   const [powerUpType, setPowerUpType] = useState<string>('');
   const [timeMultiplier, setTimeMultiplier] = useState(1);
+  const [isShaking, setIsShaking] = useState(false);
 
   const timeRemaining = Math.max(0, GAME_DURATION - timeElapsed);
 
@@ -259,63 +267,99 @@ const Index = () => {
     }
   };
 
-  const handleKeyPress = useCallback((key: string) => {
-    if (gameState.isGameOver || keyboardFrozen || contextSwitchActive) return;
-    
-    if (key === 'ENTER') {
-      if (gameState.currentGuess.length === 5) {
-        const newGuesses = [...gameState.guesses, gameState.currentGuess];
-        const isWinner = gameState.currentGuess === gameState.targetWord;
-        const isGameOver = isWinner || newGuesses.length >= 6;
-        
-        setGameState(prev => ({
-          ...prev,
-          guesses: newGuesses,
-          currentGuess: '',
-          currentRow: prev.currentRow + 1,
-          isGameOver,
-          isWinner
-        }));
-        
-        if (isGameOver) {
-          setGameActive(false);
-        }
+  const handleKeyPress = useCallback(async (key: string) => {
+    if (gameState.isGameOver || keyboardFrozen) {
+      console.log('Key press ignored: Game over or keyboard frozen.');
+      return;
+    }
+
+    const upperKey = key.toUpperCase();
+    console.log(`Key pressed: ${upperKey}`);
+
+    if (upperKey === 'ENTER') {
+      console.log(`Enter pressed. Current guess: "${gameState.currentGuess}"`);
+
+      if (gameState.currentGuess.length !== 5) {
+        console.log('Validation failed: Not enough letters.');
+        toast.error('Not enough letters');
+        setIsShaking(true);
+        setTimeout(() => setIsShaking(false), 500);
+        return;
       }
-    } else if (key === 'BACKSPACE') {
-      setGameState(prev => ({
-        ...prev,
-        currentGuess: prev.currentGuess.slice(0, -1)
+
+      const lowerCaseGuess = gameState.currentGuess.toLowerCase();
+
+      // --- Online Word Validation ---
+      toast.loading('Validating word...');
+      try {
+        const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${lowerCaseGuess}`);
+        toast.dismiss();
+        if (!response.ok) {
+          console.log(`Validation failed: "${lowerCaseGuess}" is not a valid word.`);
+          toast.error('Not in word list');
+          setIsShaking(true);
+          setTimeout(() => {
+            setIsShaking(false);
+            setGameState(prevState => ({ ...prevState, currentGuess: '' }));
+          }, 500);
+          return;
+        }
+        console.log(`Validation successful: "${lowerCaseGuess}" is a valid word.`);
+      } catch (error) {
+        toast.dismiss();
+        console.error('API validation error:', error);
+        toast.error('Could not validate word. Please check your connection.');
+        return;
+      }
+      // --- End Online Word Validation ---
+
+      console.log('Guess is valid. Proceeding with game logic.');
+      const newGuesses = [...gameState.guesses, gameState.currentGuess];
+      const newStatuses = [...gameState.statuses, getGuessStatuses(gameState.currentGuess, gameState.targetWord)];
+      const isWinner = gameState.currentGuess.toUpperCase() === gameState.targetWord.toUpperCase();
+      const isGameOver = newGuesses.length === 6 || isWinner;
+
+      setGameState(prevState => ({
+        ...prevState,
+        guesses: newGuesses,
+        statuses: newStatuses,
+        currentRow: prevState.currentRow + 1,
+        currentGuess: '',
+        isWinner,
+        isGameOver
       }));
-    } else if (key.length === 1 && gameState.currentGuess.length < 5) {
-      let newGuess = gameState.currentGuess + key;
-      
-      // Letter scrambling effect
-      if (letterScrambling && newGuess.length >= 2) {
-        const chars = newGuess.split('');
-        // Randomly swap some characters
-        for (let i = 0; i < chars.length - 1; i++) {
-          if (Math.random() < 0.4) {
-            [chars[i], chars[i + 1]] = [chars[i + 1], chars[i]];
-          }
-        }
-        newGuess = chars.join('');
+
+      if (isWinner) {
+        console.log('Game over: Player won!');
+        toast.success('You won!');
+      } else if (isGameOver) {
+        console.log(`Game over: No more guesses. The word was ${gameState.targetWord}`);
+        toast.info(`The word was ${gameState.targetWord}`);
       }
-      
-      setGameState(prev => ({
-        ...prev,
-        currentGuess: newGuess
+
+    } else if (upperKey === 'BACKSPACE') {
+      setGameState(prevState => ({
+        ...prevState,
+        currentGuess: prevState.currentGuess.slice(0, -1)
+      }));
+    } else if (gameState.currentGuess.length < 5 && /^[A-Z]$/.test(upperKey)) {
+      setGameState(prevState => ({
+        ...prevState,
+        currentGuess: prevState.currentGuess + upperKey
       }));
     }
-  }, [gameState, keyboardFrozen, contextSwitchActive, letterScrambling]);
+  }, [gameState, keyboardFrozen]);
 
   const resetGame = () => {
     setGameState({
+      ...initialGameState,
+      targetWord: solutions[Math.floor(Math.random() * solutions.length)].toUpperCase(),
       guesses: [],
+      statuses: [],
+      currentRow: 0,
       currentGuess: '',
       isGameOver: false,
       isWinner: false,
-      targetWord: WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)],
-      currentRow: 0
     });
     setTimeElapsed(0);
     setGameActive(true);
@@ -423,6 +467,7 @@ const Index = () => {
                 gameState={gameState}
                 colorBlindness={colorBlindness && activePowerUp !== 'remove_distraction'}
                 hyperfocusMode={hyperfocusMode}
+                isShaking={isShaking}
               />
               
               <GameKeyboard 
@@ -469,6 +514,7 @@ const Index = () => {
             onComplete={() => setContextSwitchActive(false)}
           />
         )}
+        <Toaster />
       </div>
     </div>
   );

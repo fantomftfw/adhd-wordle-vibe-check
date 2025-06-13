@@ -6,16 +6,13 @@ interface GameGridProps {
   gameState: GameState;
   colorBlindness: boolean;
   hyperfocusMode: boolean;
+  isShaking: boolean;
 }
 
-export const GameGrid = ({ gameState, colorBlindness, hyperfocusMode }: GameGridProps) => {
-  const getLetterStatus = useCallback((letter: string, position: number, word: string) => {
-    if (gameState.targetWord[position] === letter) return 'correct';
-    if (gameState.targetWord.includes(letter)) return 'present';
-    return 'absent';
-  }, [gameState.targetWord]);
+export const GameGrid = ({ gameState, colorBlindness, hyperfocusMode, isShaking }: GameGridProps) => {
 
   const renderRow = (guess: string, rowIndex: number, isCurrentRow: boolean = false) => {
+    const rowStatuses = gameState.statuses[rowIndex];
     const cells = [];
     
     for (let i = 0; i < 5; i++) {
@@ -32,8 +29,8 @@ export const GameGrid = ({ gameState, colorBlindness, hyperfocusMode }: GameGrid
         }
       }
 
-      if (!isCurrentRow && letter && !colorBlindness) {
-        const status = getLetterStatus(letter, i, guess);
+      if (!isCurrentRow && letter && !colorBlindness && rowStatuses) {
+        const status = rowStatuses[i];
         
         switch (status) {
           case 'correct':
@@ -64,7 +61,7 @@ export const GameGrid = ({ gameState, colorBlindness, hyperfocusMode }: GameGrid
     }
     
     return (
-      <div key={rowIndex} className="flex gap-1 justify-center">
+      <div key={rowIndex} className={`flex gap-1 justify-center ${isCurrentRow && isShaking ? 'animate-shake' : ''}`}>
         {cells}
       </div>
     );
