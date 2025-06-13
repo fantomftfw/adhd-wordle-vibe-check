@@ -255,6 +255,8 @@ const GamePage = () => {
     return () => clearInterval(spawnInterval);
   }, [gameActive, gameState.isGameOver, symptomsActive, adhdSettings.intensity, distractionBlobVisible, activePowerUp]);
 
+
+
   // Power-up spawning - Fixed timing
   useEffect(() => {
     if (!gameActive || gameState.isGameOver || powerUpVisible || !symptomsActive) return;
@@ -440,6 +442,7 @@ const GamePage = () => {
     setIsShaking(true);
     setTimeout(() => setIsShaking(false), 500);
   };
+
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

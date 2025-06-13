@@ -1,0 +1,24 @@
+# This file configures the build and deployment settings for Netlify.
+
+[build]
+  # This command builds your React app for production.
+  command = "npm run build"
+  
+  # The directory containing the built site.
+  publish = "dist"
+  
+  # The directory where Netlify will find the serverless functions.
+  functions = "netlify/functions"
+
+[functions]
+  # Specifies the bundler for the functions.
+  node_bundler = "esbuild"
+
+# Settings for the local development server (`netlify dev`)
+[dev]
+  # The command to start your Vite dev server
+  command = "npm run dev"
+  # The port your Vite server will run on
+  targetPort = 5173
+  # The port for the main Netlify Dev server
+  port = 8888
