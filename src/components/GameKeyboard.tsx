@@ -6,8 +6,8 @@ interface GameKeyboardProps {
   onKeyPress: (key: string) => void;
   gameState: GameState;
   frozen: boolean;
-  revealLetters: boolean;
-  targetWord: string;
+  revealLetters?: boolean;
+  targetWord?: string;
 }
 
 const KEYBOARD_ROWS = [

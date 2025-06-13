@@ -1,15 +1,13 @@
-
 import { useState, useEffect, useCallback } from 'react';
-import type { GameState } from '@/pages/Index';
+import type { GameState } from '@/pages/Game';
 
 interface GameGridProps {
   gameState: GameState;
   colorBlindness: boolean;
-  hyperfocusMode: boolean;
   isShaking: boolean;
 }
 
-export const GameGrid = ({ gameState, colorBlindness, hyperfocusMode, isShaking }: GameGridProps) => {
+export const GameGrid = ({ gameState, colorBlindness, isShaking }: GameGridProps) => {
 
   const renderRow = (guess: string, rowIndex: number, isCurrentRow: boolean = false) => {
     const rowStatuses = gameState.statuses[rowIndex];
@@ -19,15 +17,7 @@ export const GameGrid = ({ gameState, colorBlindness, hyperfocusMode, isShaking 
       const letter = isCurrentRow ? gameState.currentGuess[i] || '' : guess[i] || '';
       
       let cellClass = 'w-12 h-12 border-2 border-border flex items-center justify-center text-lg font-bold transition-all duration-300 ';
-      
-      if (hyperfocusMode) {
-        if (isCurrentRow) {
-          // Make current row extra visible during hyperfocus
-          cellClass += 'ring-2 ring-blue-400 bg-background/90 text-foreground shadow-lg shadow-blue-400/50 ';
-        } else {
-          cellClass += 'ring-1 ring-blue-400/50 ';
-        }
-      }
+
 
       if (!isCurrentRow && letter && !colorBlindness && rowStatuses) {
         const status = rowStatuses[i];
@@ -44,11 +34,7 @@ export const GameGrid = ({ gameState, colorBlindness, hyperfocusMode, isShaking 
             break;
         }
       } else if (isCurrentRow && letter) {
-        if (hyperfocusMode) {
-          cellClass += 'border-blue-400 bg-background/95 text-foreground font-bold ';
-        } else {
-          cellClass += 'border-foreground ';
-        }
+        cellClass += 'border-foreground ';
       } else if (!isCurrentRow && letter && colorBlindness) {
         cellClass += 'bg-gray-300 text-gray-700 border-gray-300 ';
       }
@@ -88,13 +74,7 @@ export const GameGrid = ({ gameState, colorBlindness, hyperfocusMode, isShaking 
     <div className="space-y-1 py-4">
       {rows}
       
-      {hyperfocusMode && (
-        <div className="text-center mt-4">
-          <div className="inline-flex items-center gap-2 bg-blue-100/90 text-blue-800 px-3 py-1 rounded-full text-sm backdrop-blur-sm">
-            🎯 Hyperfocus Mode Active - Type to continue
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };

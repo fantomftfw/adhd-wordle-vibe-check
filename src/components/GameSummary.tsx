@@ -1,6 +1,6 @@
 
 import { Clock, Zap, Eye, Star } from 'lucide-react';
-import type { GameState } from '@/pages/Index';
+import type { GameState } from '@/pages/Game';
 
 interface GameSummaryProps {
   gameState: GameState;

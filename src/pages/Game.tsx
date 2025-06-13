@@ -1,13 +1,16 @@
-
 import { useState, useEffect, useCallback } from 'react';
+import { Share2 } from 'lucide-react';
 import { GameGrid } from '@/components/GameGrid';
 import { GameKeyboard } from '@/components/GameKeyboard';
 import { AccessibilityControls } from '@/components/AccessibilityControls';
 import { GameSummary } from '@/components/GameSummary';
 import { PowerUpBlob } from '@/components/PowerUpBlob';
 import { ContextSwitchPopup } from '@/components/ContextSwitchPopup';
+import { HyperfocusPopup } from '@/components/HyperfocusPopup';
+import { DistractionBlob } from '@/components/DistractionBlob';
 import { getGuessStatuses, LetterStatus } from '@/lib/wordleUtils';
 import { solutions } from '@/lib/solutions';
+
 import { Toaster } from "@/components/ui/sonner"
 import { toast } from "sonner"
 
@@ -18,7 +21,6 @@ export interface ADHDSettings {
   intensity: number;
   isAccommodated: boolean;
   isGoodBrainDay: boolean;
-  isHyperfocus: boolean;
 }
 
 export interface GameState {
@@ -41,7 +43,43 @@ const initialGameState: GameState = {
   isWinner: false,
 };
 
-const Index = () => {
+const FAKE_NOTIFICATIONS = [
+  { title: '💬 New Message', description: 'From Alex: "Hey, you free later?"' },
+  { title: '📸 Social Media', description: 'Someone tagged you in 3 photos.' },
+  { title: '📰 News Alert', description: 'Breaking: A new study on productivity released.' },
+  { title: '📦 Shopping', description: 'Your package has been shipped!' },
+  { title: '📅 Calendar', description: 'Reminder: Team meeting in 15 minutes.' }
+];
+
+const GamePage = () => {
+
+  const handleShare = () => {
+    const title = `ADHD Wordle ${gameState.guesses.length}/6`;
+    const emojiGrid = gameState.statuses
+      .map(row =>
+        row
+          .map(status => {
+            switch (status) {
+              case 'correct':
+                return '🟩';
+              case 'present':
+                return '🟨';
+              default:
+                return '⬛';
+            }
+          })
+          .join('')
+      )
+      .join('\n');
+
+    const shareText = `${title}\n\n${emojiGrid}\n\nhttps://wordleadhd.netlify.app/`;
+    navigator.clipboard.writeText(shareText).then(() => {
+      toast.success('Results copied to clipboard!');
+    }).catch(err => {
+      toast.error('Could not copy results.');
+      console.error('Failed to copy: ', err);
+    });
+  };
   
   const [gameState, setGameState] = useState<GameState>(initialGameState);
 
@@ -49,7 +87,7 @@ const Index = () => {
     intensity: 3,
     isAccommodated: false,
     isGoodBrainDay: false,
-    isHyperfocus: false
+
   });
 
   const [timeElapsed, setTimeElapsed] = useState(0);
@@ -58,10 +96,11 @@ const Index = () => {
   
   // ADHD Symptoms with improved timing
   const [keyboardFrozen, setKeyboardFrozen] = useState(false);
-  const [letterScrambling, setLetterScrambling] = useState(false);
   const [colorBlindness, setColorBlindness] = useState(false);
-  const [hyperfocusMode, setHyperfocusMode] = useState(false);
   const [contextSwitchActive, setContextSwitchActive] = useState(false);
+  const [isHyperfocusing, setIsHyperfocusing] = useState(false);
+  const [isTimeDistorted, setIsTimeDistorted] = useState(false);
+  const [distractionBlobVisible, setDistractionBlobVisible] = useState(false);
   const [lastSymptomTime, setLastSymptomTime] = useState(0);
   
   // Power-ups
@@ -70,6 +109,8 @@ const Index = () => {
   const [powerUpType, setPowerUpType] = useState<string>('');
   const [timeMultiplier, setTimeMultiplier] = useState(1);
   const [isShaking, setIsShaking] = useState(false);
+  const [distractionBlobPosition, setDistractionBlobPosition] = useState({ top: '50%', left: '50%' });
+  const [distractionBlobTimer, setDistractionBlobTimer] = useState<NodeJS.Timeout | null>(null);
 
   const timeRemaining = Math.max(0, GAME_DURATION - timeElapsed);
 
@@ -130,7 +171,7 @@ const Index = () => {
       }
       
       // Check if any major symptom is currently active
-      const majorSymptomActive = keyboardFrozen || letterScrambling || colorBlindness;
+      const majorSymptomActive = keyboardFrozen || colorBlindness || isHyperfocusing;
       
       const random = Math.random();
       console.log('🎲 Symptom check:', random);
@@ -144,36 +185,33 @@ const Index = () => {
         
         setLastSymptomTime(currentTime);
         
-        // Balanced frequencies - equal 25% chance for each symptom type
-        if (symptomRoll < 0.25 && !majorSymptomActive) {
+        // Rebalanced frequencies - now with Time Distortion
+        if (symptomRoll < 0.17 && !majorSymptomActive) {
           console.log('🔒 TRIGGERING: Keyboard freeze');
           setKeyboardFrozen(true);
-          setTimeout(() => {
-            setKeyboardFrozen(false);
-            console.log('🔓 Keyboard unfrozen');
-          }, 3000); // 3 seconds duration
-        }
-        else if (symptomRoll < 0.5 && !majorSymptomActive) {
-          console.log('🔀 TRIGGERING: Letter scrambling');
-          setLetterScrambling(true);
-          setTimeout(() => {
-            setLetterScrambling(false);
-            console.log('✅ Letter scrambling stopped');
-          }, 4000); // 4 seconds duration
-        }
-        else if (symptomRoll < 0.75 && !majorSymptomActive) {
+          setTimeout(() => setKeyboardFrozen(false), 3500 + (adhdSettings.intensity * 300));
+        } else if (symptomRoll < 0.34 && !majorSymptomActive) {
           console.log('👁️ TRIGGERING: Color blindness');
           setColorBlindness(true);
-          setTimeout(() => {
-            setColorBlindness(false);
-            console.log('🌈 Colors restored');
-          }, 5000); // 5 seconds duration
-        }
-        else if (symptomRoll < 1.0) {
-          // Context switch can overlap with other symptoms
-          console.log('🎪 TRIGGERING: Context switch');
+          setTimeout(() => setColorBlindness(false), 5000 + (adhdSettings.intensity * 500));
+        } else if (symptomRoll < 0.51) {
+          console.log('📱 TRIGGERING: Notification Overload');
+          const notification = FAKE_NOTIFICATIONS[Math.floor(Math.random() * FAKE_NOTIFICATIONS.length)];
+          toast.info(notification.title, { description: notification.description, duration: 3000 });
+        } else if (symptomRoll < 0.68 && !majorSymptomActive) {
+          console.log('😵 TRIGGERING: Hyperfocus Episode');
+          setIsHyperfocusing(true);
+        } else if (symptomRoll < 0.85 && !isTimeDistorted) {
+            console.log('⏳ TRIGGERING: Time Distortion');
+            setIsTimeDistorted(true);
+            setTimeMultiplier(2); // Speed up time
+            setTimeout(() => {
+              setIsTimeDistorted(false);
+              setTimeMultiplier(1); // Reset time
+            }, 4000 + (adhdSettings.intensity * 200)); // Duration scales slightly
+        } else {
+          console.log('🔄 TRIGGERING: Context switch');
           setContextSwitchActive(true);
-          // Context switch will be cleared by the popup component
         }
       }
     }, symptomCheckInterval);
@@ -182,26 +220,40 @@ const Index = () => {
       console.log('🧹 Cleaning up symptoms interval');
       clearInterval(symptomInterval);
     };
-  }, [gameActive, gameState.isGameOver, symptomsActive, activePowerUp, keyboardFrozen, letterScrambling, colorBlindness, lastSymptomTime, adhdSettings.intensity]);
+  }, [gameActive, gameState.isGameOver, symptomsActive, activePowerUp, keyboardFrozen, colorBlindness, lastSymptomTime, adhdSettings.intensity]);
 
-  // Hyperfocus effect - Fixed
+  // Impulse Control Challenge - Distraction Blob Spawning
   useEffect(() => {
-    if (!gameActive || gameState.isGameOver || !symptomsActive) return;
-    if (activePowerUp === 'remove_distraction') return;
+    if (!gameActive || gameState.isGameOver || !symptomsActive || activePowerUp === 'remove_distraction') {
+      setDistractionBlobVisible(false);
+      return;
+    }
 
-    const hyperfocusInterval = setInterval(() => {
-      if (Math.random() < 0.12 && !hyperfocusMode) { // Reduced to 12% chance
-        console.log('🎯 TRIGGERING: Hyperfocus mode');
-        setHyperfocusMode(true);
-        setTimeout(() => {
-          setHyperfocusMode(false);
-          console.log('🎯 Hyperfocus deactivated');
-        }, 8000);
+    const baseInterval = 15000; // 15 seconds
+    const intensityMultiplier = Math.max(0.4, 1.2 - (adhdSettings.intensity * 0.15));
+    const spawnIntervalTime = baseInterval * intensityMultiplier;
+
+    const spawnInterval = setInterval(() => {
+      if (!distractionBlobVisible) {
+        console.log('✨ Spawning Distraction Blob');
+        const top = `${Math.random() * 60 + 20}%`;
+        const left = `${Math.random() * 70 + 15}%`;
+        setDistractionBlobPosition({ top, left });
+        setDistractionBlobVisible(true);
+
+        // Automatically hide the blob after 5 seconds if not clicked
+        const hideTimer = setTimeout(() => {
+          setDistractionBlobVisible(false);
+          console.log('💨 Distraction blob disappeared.');
+        }, 5000);
+
+        // Store timer to clear it if clicked
+        setDistractionBlobTimer(hideTimer);
       }
-    }, 15000); // Check every 15 seconds (increased from 12)
+    }, spawnIntervalTime);
 
-    return () => clearInterval(hyperfocusInterval);
-  }, [gameActive, gameState.isGameOver, symptomsActive, hyperfocusMode, activePowerUp]);
+    return () => clearInterval(spawnInterval);
+  }, [gameActive, gameState.isGameOver, symptomsActive, adhdSettings.intensity, distractionBlobVisible, activePowerUp]);
 
   // Power-up spawning - Fixed timing
   useEffect(() => {
@@ -211,7 +263,7 @@ const Index = () => {
 
     const spawnInterval = setInterval(() => {
       if (Math.random() < 0.3) { // Reduced to 30% chance
-        const powerUpTypes = ['slow_time', 'reveal_letters', 'remove_distraction', 'focus_mode'];
+        const powerUpTypes = ['slow_time', 'reveal_letters', 'remove_distraction'];
         const randomType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
         
         setPowerUpType(randomType);
@@ -252,18 +304,14 @@ const Index = () => {
       case 'remove_distraction':
         // Clear all active symptoms immediately
         setKeyboardFrozen(false);
-        setLetterScrambling(false);
         setColorBlindness(false);
         setContextSwitchActive(false);
-        setHyperfocusMode(false);
         // Reset the last symptom time to add extra cooldown
         setLastSymptomTime(Date.now() + 8000); // Add 8 seconds extra cooldown
         setTimeout(() => setActivePowerUp(null), 15000); // 15 seconds duration
         break;
         
-      case 'focus_mode':
-        setTimeout(() => setActivePowerUp(null), 10000);
-        break;
+
     }
   };
 
@@ -365,14 +413,32 @@ const Index = () => {
     setGameActive(true);
     setSymptomsActive(false);
     setKeyboardFrozen(false);
-    setLetterScrambling(false);
     setColorBlindness(false);
-    setHyperfocusMode(false);
     setContextSwitchActive(false);
     setActivePowerUp(null);
     setPowerUpVisible(false);
     setLastSymptomTime(0);
     setTimeMultiplier(1);
+  };
+
+  const handleDistractionClick = () => {
+    if (distractionBlobTimer) {
+      clearTimeout(distractionBlobTimer);
+      setDistractionBlobTimer(null);
+    }
+
+    console.log('💥 Clicked a distraction!');
+    setDistractionBlobVisible(false);
+
+    // Penalty: Lose 5 seconds
+    setTimeElapsed(prev => Math.min(GAME_DURATION, prev + 5));
+    toast.error('Distraction! You lost 5 seconds.', {
+      duration: 2000,
+    });
+
+    // Visual feedback
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 500);
   };
 
   const formatTime = (seconds: number) => {
@@ -382,52 +448,33 @@ const Index = () => {
   };
 
   return (
-    <div className={`min-h-screen transition-all duration-500 ${
-      hyperfocusMode 
-        ? 'bg-black relative' 
-        : activePowerUp === 'focus_mode' 
-          ? 'bg-black' 
-          : 'bg-background'
-    }`}>
-      {/* Hyperfocus overlay - Enhanced with 85% darkness but allowing current guess visibility */}
-      {hyperfocusMode && (
-        <div className="fixed inset-0 bg-black bg-opacity-85 z-10 pointer-events-none" />
-      )}
-      
-      <div className={`container mx-auto max-w-lg p-4 ${hyperfocusMode ? 'relative z-20' : ''}`}>
+    <div className={`min-h-screen transition-all duration-500 bg-background`}>
+      <div className={`container mx-auto max-w-lg p-4`}>
         {/* Header */}
-        <header className={`text-center py-4 border-b border-border ${
-          activePowerUp === 'focus_mode' ? 'opacity-0' : 
-          hyperfocusMode ? 'opacity-100' : ''
-        } ${hyperfocusMode ? 'shadow-lg shadow-white/50 bg-background/20 backdrop-blur-sm rounded-lg border border-white/20' : ''}`}>
+        <header className={`text-center py-4 border-b border-border`}>
           <h1 className="text-2xl font-bold text-foreground">ADHD Wordle</h1>
+          
+          {/* Combined Stats */}
           <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
-            <span>Time: {formatTime(timeElapsed)}</span>
-            <span className={timeRemaining < 60 ? 'text-red-500 font-bold' : ''}>
+            <span>Attempt: {gameState.currentRow + 1}/6</span>
+            <span className={`transition-all duration-300 ${isTimeDistorted ? 'text-red-500 font-extrabold animate-pulse' : (timeRemaining < 60 ? 'text-red-500 font-bold' : '')}`}>
               Remaining: {formatTime(timeRemaining)}
             </span>
-            <span>Attempt: {gameState.currentRow + 1}/6</span>
           </div>
-          {symptomsActive && (
-            <div className="mt-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-              🧠 ADHD Mode Active - Intensity: {adhdSettings.intensity}/5
-            </div>
-          )}
-          {hyperfocusMode && (
-            <div className="mt-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-              🎯 Hyperfocus Mode - Everything else fades away!
-            </div>
-          )}
-          {activePowerUp === 'remove_distraction' && (
-            <div className="mt-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-              🧘 Distraction-Free Mode Active
-            </div>
-          )}
-          {activePowerUp === 'slow_time' && (
-            <div className="mt-2 text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
-              ⏰ Time Slowed Down!
-            </div>
-          )}
+
+          {/* Symptom Status Indicators */}
+          <div className="mt-1 space-y-1 min-h-[1.75rem]">
+            {keyboardFrozen && activePowerUp !== 'remove_distraction' && (
+              <div className="text-center text-sm text-red-600 font-bold bg-red-100 py-1 px-2 rounded">
+                🔒 KEYBOARD FROZEN
+              </div>
+            )}
+            {colorBlindness && activePowerUp !== 'remove_distraction' && (
+              <div className="text-center text-sm text-purple-600 font-bold bg-purple-100 py-1 px-2 rounded">
+                👁️ COLORS DISRUPTED
+              </div>
+            )}
+          </div>
         </header>
 
         {/* Show game summary if game is over */}
@@ -439,34 +486,56 @@ const Index = () => {
               correctWord={gameState.targetWord}
             />
             
-            <div className="text-center">
+            <div className="text-center flex justify-center gap-4">
               <button
                 onClick={resetGame}
                 className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 transition-colors"
               >
                 Play Again
               </button>
+              <button
+                onClick={handleShare}
+                className="bg-secondary text-secondary-foreground px-6 py-2 rounded-md hover:bg-secondary/90 transition-colors flex items-center gap-2"
+              >
+                <Share2 className="w-4 h-4" />
+                Share
+              </button>
             </div>
           </div>
         ) : (
           <>
-            {/* Accessibility Controls */}
-            <div className={
-              activePowerUp === 'focus_mode' ? 'opacity-0' : 
-              hyperfocusMode ? 'opacity-0' : ''
-            }>
+            {/* ADHD Controls & Status */}
+            <div className={`flex items-center justify-between p-2 bg-background/20 rounded-lg border border-border/50 mb-2`}>
               <AccessibilityControls 
                 settings={adhdSettings}
                 onSettingsChange={setADHDSettings}
               />
+              {/* Other Mode Indicators */}
+              <div className="flex flex-wrap items-center justify-end gap-1 text-xs">
+                  {symptomsActive && (
+                    <div className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded inline-block m-1">
+                      🧠 ADHD Mode Active - Intensity: {adhdSettings.intensity}/5
+                    </div>
+                  )}
+
+                  {activePowerUp === 'remove_distraction' && (
+                    <div className="bg-green-100 text-green-800 px-2 py-1 rounded inline-block m-1">
+                      🧘 Distraction-Free
+                    </div>
+                  )}
+                  {activePowerUp === 'slow_time' && (
+                    <div className="bg-purple-100 text-purple-800 px-2 py-1 rounded inline-block m-1">
+                      ⏰ Time Slowed Down!
+                    </div>
+                  )}
+              </div>
             </div>
 
             {/* Main Game Area */}
-            <div className={`py-4 space-y-4 ${hyperfocusMode ? 'shadow-lg shadow-white/50 bg-background/20 backdrop-blur-sm rounded-lg border border-white/20' : ''}`}>
+            <div className={`py-2 space-y-2`}>
               <GameGrid 
                 gameState={gameState}
                 colorBlindness={colorBlindness && activePowerUp !== 'remove_distraction'}
-                hyperfocusMode={hyperfocusMode}
                 isShaking={isShaking}
               />
               
@@ -479,32 +548,23 @@ const Index = () => {
               />
             </div>
 
-            {/* Status indicators */}
-            {keyboardFrozen && activePowerUp !== 'remove_distraction' && (
-              <div className="text-center text-sm text-red-600 mt-2 font-bold bg-red-100 py-2 rounded">
-                🔒 KEYBOARD FROZEN - Can't type right now!
-              </div>
-            )}
-
-            {letterScrambling && activePowerUp !== 'remove_distraction' && (
-              <div className="text-center text-sm text-yellow-600 mt-2 font-bold bg-yellow-100 py-2 rounded">
-                🔀 LETTERS SCRAMBLING - Words getting mixed up!
-              </div>
-            )}
-
-            {colorBlindness && activePowerUp !== 'remove_distraction' && (
-              <div className="text-center text-sm text-purple-600 mt-2 font-bold bg-purple-100 py-2 rounded">
-                👁️ COLORS DISRUPTED - Visual feedback affected!
-              </div>
-            )}
           </>
         )}
+
+        {isHyperfocusing && <HyperfocusPopup onClose={() => setIsHyperfocusing(false)} />}
 
         {/* Power-up floating action button - Enhanced for mobile */}
         {powerUpVisible && (
           <PowerUpBlob 
             type={powerUpType}
             onClick={() => handlePowerUpClick(powerUpType)}
+          />
+        )}
+
+        {distractionBlobVisible && (
+          <DistractionBlob 
+            onClick={handleDistractionClick}
+            style={distractionBlobPosition} 
           />
         )}
 
@@ -520,4 +580,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default GamePage;
