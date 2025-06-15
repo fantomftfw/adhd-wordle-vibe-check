@@ -16,7 +16,7 @@ export const GameGrid = ({ gameState, colorBlindness, isShaking }: GameGridProps
     for (let i = 0; i < 5; i++) {
       const letter = isCurrentRow ? gameState.currentGuess[i] || '' : guess[i] || '';
       
-      let cellClass = 'w-12 h-12 border-2 border-border flex items-center justify-center text-lg font-bold transition-all duration-300 ';
+      let cellClass = 'w-10 h-10 sm:w-12 sm:h-12 border-2 border-border flex items-center justify-center text-lg sm:text-xl font-bold transition-all duration-300 ';
 
 
       if (!isCurrentRow && letter && !colorBlindness && rowStatuses) {
@@ -71,7 +71,7 @@ export const GameGrid = ({ gameState, colorBlindness, isShaking }: GameGridProps
   }
 
   return (
-    <div className="space-y-1 py-4">
+    <div className="space-y-1 sm:space-y-2 py-1 sm:py-2">
       {rows}
       
 

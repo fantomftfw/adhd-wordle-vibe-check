@@ -484,8 +484,8 @@ const GamePage = () => {
   };
 
   return (
-    <div className={`min-h-screen transition-all duration-500 bg-background`}>
-      <div className={`w-full ${gameState.isGameOver ? '' : 'max-w-md'} mx-auto flex flex-col flex-grow p-4`}>
+    <div className="h-dvh transition-all duration-500 bg-background">
+      <div className={`h-full w-full ${gameState.isGameOver ? '' : 'max-w-md'} mx-auto flex flex-col p-4`}>
 
         {/* Conditional Rendering: Game View vs. Summary View */}
         {gameState.isGameOver ? (
@@ -503,8 +503,8 @@ const GamePage = () => {
         ) : (
           <>
             {/* Header */}
-                                    <header className="text-center py-2 border-b border-border">
-              <h1 className="text-2xl font-bold text-foreground">ADHD Wordle</h1>
+                                    <header className="text-center py-1 sm:py-2 border-b border-border">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">ADHD Wordle</h1>
               <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
                 <span>Attempt: {gameState.guesses.length + 1} / 6</span>
                 <span className={`transition-all duration-300 ${isTimeDistorted ? 'text-red-500 font-extrabold animate-pulse' : (timeRemaining < 60 ? 'text-red-500 font-bold' : '')}`}>
@@ -514,7 +514,7 @@ const GamePage = () => {
               </header>
 
             {/* -- CONTROLS & STATUS -- */}
-            <div className="p-2 bg-background/20 rounded-lg border border-border/50 my-2 space-y-2">
+            <div className="p-1 sm:p-2 bg-background/20 rounded-lg border border-border/50 my-1 sm:my-2 space-y-1 sm:space-y-2">
               {/* Intensity Slider - Always Visible */}
               <AccessibilityControls 
                 settings={adhdSettings}
@@ -558,7 +558,7 @@ const GamePage = () => {
                 )}
               </div>
             </div>
-            <div className={`flex-grow flex flex-col justify-center space-y-1 py-1`}>
+            <div className="flex-grow flex flex-col justify-between">
               <GameGrid 
                 gameState={gameState}
                 colorBlindness={colorBlindness && activePowerUp !== 'remove_distraction'}
