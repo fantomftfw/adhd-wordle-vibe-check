@@ -1,13 +1,28 @@
 import React, { useState, useEffect } from 'react';
 
+// Reuse the same notification sounds defined in Game.tsx
+const NOTIFICATION_SOUNDS = [
+  '/sounds/notification1.mp3',
+  '/sounds/notification2.mp3',
+  '/sounds/notification3.mp3',
+];
+
+const playRandomNotificationSound = () => {
+  const src = NOTIFICATION_SOUNDS[Math.floor(Math.random() * NOTIFICATION_SOUNDS.length)];
+  const audio = new Audio(src);
+  audio.play().catch(() => {
+    /* ignore autoplay issues */
+  });
+};
+
 const FUN_FACTS = [
   "A group of flamingos is called a 'flamboyance'.",
-  "The national animal of Scotland is the unicorn.",
-  "Honey never spoils. Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3,000 years old and still perfectly edible.",
-  "A single cloud can weigh more than a million pounds.",
-  "There are more trees on Earth than stars in the Milky Way galaxy.",
-  "Octopuses have three hearts.",
-  "Bananas are berries, but strawberries aren't."
+  'The national animal of Scotland is the unicorn.',
+  'Honey never spoils. Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3,000 years old and still perfectly edible.',
+  'A single cloud can weigh more than a million pounds.',
+  'There are more trees on Earth than stars in the Milky Way galaxy.',
+  'Octopuses have three hearts.',
+  "Bananas are berries, but strawberries aren't.",
 ];
 
 interface HyperfocusPopupProps {
@@ -19,6 +34,8 @@ export const HyperfocusPopup = ({ onClose }: HyperfocusPopupProps) => {
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
 
   useEffect(() => {
+    // play sound on mount
+    playRandomNotificationSound();
     const timer = setTimeout(() => {
       setIsButtonDisabled(false);
     }, 3000); // 3-second delay

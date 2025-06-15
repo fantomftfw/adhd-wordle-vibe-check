@@ -66,6 +66,21 @@ const initialGameState: GameState = {
   isWinner: false,
 };
 
+// Sound effects for notification overload (place mp3 files in public/sounds)
+const NOTIFICATION_SOUNDS = [
+  '/sounds/notification1.mp3',
+  '/sounds/notification2.mp3',
+  '/sounds/notification3.mp3',
+];
+
+const playRandomNotificationSound = () => {
+  const src = NOTIFICATION_SOUNDS[Math.floor(Math.random() * NOTIFICATION_SOUNDS.length)];
+  const audio = new Audio(src);
+  audio.play().catch(() => {
+    /* ignore autoplay restrictions */
+  });
+};
+
 const FAKE_NOTIFICATIONS = [
   { title: '💬 New Message', description: 'From Alex: "Hey, you free later?"' },
   { title: '📸 Social Media', description: 'Someone tagged you in 3 photos.' },
@@ -246,23 +261,27 @@ const GamePage = () => {
         setLastSymptomTime(currentTime);
 
         // Rebalanced frequencies - now with Time Distortion
-        if (symptomRoll < 0.17 && !majorSymptomActive) {
+        if (symptomRoll < 0.25 && !majorSymptomActive) {
           console.log('🔒 TRIGGERING: Keyboard freeze');
           setKeyboardFrozen(true);
           setTimeout(() => setKeyboardFrozen(false), 3500 + adhdSettings.intensity * 300);
-        } else if (symptomRoll < 0.34 && !majorSymptomActive) {
+        } else if (symptomRoll < 0.5 && !majorSymptomActive) {
           console.log('👁️ TRIGGERING: Color blindness');
           setColorBlindness(true);
-          setTimeout(() => setColorBlindness(false), 5000 + adhdSettings.intensity * 500);
-        } else if (symptomRoll < 0.51) {
+          setTimeout(() => setColorBlindness(false), 3000 + adhdSettings.intensity * 200);
+        } else if (symptomRoll < 0.7) {
           console.log('📱 TRIGGERING: Notification Overload');
+          playRandomNotificationSound();
           const notification =
             FAKE_NOTIFICATIONS[Math.floor(Math.random() * FAKE_NOTIFICATIONS.length)];
-          toast.info(notification.title, { description: notification.description, duration: 3000 });
-        } else if (symptomRoll < 0.68 && !majorSymptomActive) {
+          toast.info(notification.title, {
+            description: notification.description,
+            duration: 3000,
+          });
+        } else if (symptomRoll < 0.85 && !majorSymptomActive) {
           console.log('😵 TRIGGERING: Hyperfocus Episode');
           setIsHyperfocusing(true);
-        } else if (symptomRoll < 0.85 && !isTimeDistorted) {
+        } else if (symptomRoll < 0.95 && !isTimeDistorted) {
           console.log('⏳ TRIGGERING: Time Distortion');
           setIsTimeDistorted(true);
           setTimeMultiplier(2); // Speed up time
@@ -295,8 +314,9 @@ const GamePage = () => {
     adhdSettings.intensity,
   ]);
 
-  // Impulse Control Challenge - Distraction Blob Spawning
+  // Impulse Control Challenge - Distraction Blob Spawning (DISABLED per user request)
   useEffect(() => {
+    return; // blob spawning disabled
     if (
       !gameActive ||
       gameState.isGameOver ||
