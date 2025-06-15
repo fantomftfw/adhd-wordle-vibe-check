@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Toaster } from '@/components/ui/toaster';
-import { Toaster as Sonner, toast } from '@/components/ui/sonner';
+import { Toaster as HotToaster, toast } from 'react-hot-toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { Seo } from '@/components/Seo';
 import Landing from './pages/Landing';
 import Game from './pages/Game';
@@ -56,6 +57,9 @@ const RouteChangeTracker = () => {
 };
 
 const App = () => {
+  const isDesktop = useMediaQuery('(min-width: 768px)');
+  const toastPosition = isDesktop ? 'bottom-right' : 'bottom-center';
+  const toastMarginBottom = isDesktop ? '1rem' : '76px';
   
   const [showExitIntentPopup, setShowExitIntentPopup] = useState(false);
   const [showMobileWaitlistDrawer, setShowMobileWaitlistDrawer] = useState(false);
@@ -129,7 +133,30 @@ const App = () => {
               />
 
               <Toaster />
-              <Sonner />
+              <HotToaster
+                position={toastPosition}
+                gutter={8}
+                toastOptions={{
+                  // Define default options
+                  duration: 5000,
+                  style: {
+                    background: 'hsl(var(--secondary))',
+                    color: 'hsl(var(--secondary-foreground))',
+                    marginBottom: toastMarginBottom,
+                    borderRadius: 'var(--radius)',
+                    border: '1px solid hsl(var(--border))',
+                  },
+
+                  // Default options for specific types
+                  success: {
+                    duration: 3000,
+                    iconTheme: {
+                      primary: 'hsl(142.1 76.2% 36.3%)',
+                      secondary: 'hsl(var(--primary-foreground))',
+                    },
+                  },
+                }}
+              />
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/game" element={<Game />} />

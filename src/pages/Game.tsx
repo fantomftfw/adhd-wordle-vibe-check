@@ -11,8 +11,7 @@ import { DistractionBlob } from '@/components/DistractionBlob';
 import { getGuessStatuses, LetterStatus } from '@/lib/wordleUtils';
 import { solutions } from '@/lib/solutions';
 
-import { Toaster } from '@/components/ui/sonner';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 const GAME_DURATION = 300; // 5 minutes
 const SYMPTOMS_START_TIME = 5; // Start symptoms after 5 seconds
@@ -89,15 +88,6 @@ const FAKE_NOTIFICATIONS = [
 ];
 
 const GamePage = () => {
-  // Auto-scroll on mobile to hide header and reveal buffer zone
-  useEffect(() => {
-    if (window.innerWidth <= 768) {
-      // allow layout to paint first
-      setTimeout(() => {
-        window.scrollTo({ top: 120, behavior: 'smooth' });
-      }, 100);
-    }
-  }, []);
   const navigate = useNavigate();
 
   const handleCopyToClipboard = () => {
@@ -288,7 +278,7 @@ const GamePage = () => {
           playRandomNotificationSound();
           const notification =
             FAKE_NOTIFICATIONS[Math.floor(Math.random() * FAKE_NOTIFICATIONS.length)];
-          toast.info(notification.title, { description: notification.description, duration: 3000 });
+          toast(`${notification.title}\n${notification.description}`, { duration: 3000 });
           console.log('🧠 TRIGGERING: Memory Lapse');
           // remove last guess permanently
           setGameState((prev) => {
@@ -394,10 +384,7 @@ const GamePage = () => {
       playRandomNotificationSound();
       const notification =
         FAKE_NOTIFICATIONS[Math.floor(Math.random() * FAKE_NOTIFICATIONS.length)];
-      toast.info(notification.title, {
-        description: notification.description,
-        duration: 3000,
-      });
+      toast(`${notification.title}\n${notification.description}`, { duration: 3000, icon: '🔔' });
     };
 
     const computeInterval = () => {
@@ -511,12 +498,12 @@ const GamePage = () => {
         const lowerCaseGuess = gameState.currentGuess.toLowerCase();
 
         // --- Online Word Validation ---
-        toast.loading('Validating word...');
+        const toastId = toast.loading('Validating word...');
         try {
           const response = await fetch(
             `https://api.dictionaryapi.dev/api/v2/entries/en/${lowerCaseGuess}`
           );
-          toast.dismiss();
+          toast.dismiss(toastId);
           if (!response.ok) {
             console.log(`Validation failed: "${lowerCaseGuess}" is not a valid word.`);
             toast.error('Not in word list');
@@ -529,7 +516,7 @@ const GamePage = () => {
           }
           console.log(`Validation successful: "${lowerCaseGuess}" is a valid word.`);
         } catch (error) {
-          toast.dismiss();
+          toast.dismiss(toastId);
           console.error('API validation error:', error);
           toast.error('Could not validate word. Please check your connection.');
           return;
@@ -561,7 +548,7 @@ const GamePage = () => {
           toast.success('You won!');
         } else if (isGameOver) {
           console.log(`Game over: No more guesses. The word was ${gameState.targetWord}`);
-          toast.info(`The word was ${gameState.targetWord}`);
+          toast(`The word was ${gameState.targetWord}`, { icon: 'ℹ️' });
         }
       } else if (upperKey === 'BACKSPACE') {
         setGameState((prevState) => ({
@@ -731,7 +718,7 @@ const GamePage = () => {
         {contextSwitchActive && activePowerUp !== 'remove_distraction' && (
           <ContextSwitchPopup onComplete={() => setContextSwitchActive(false)} />
         )}
-        <Toaster />
+        
       </div>
     </div>
   );
