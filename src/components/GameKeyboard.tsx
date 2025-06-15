@@ -44,11 +44,11 @@ export const GameKeyboard = ({
   const renderKey = (key: string) => {
     const isTargetLetter = targetWord.includes(key);
     
-    let keyClass = 'h-10 sm:h-12 px-2 sm:px-3 rounded font-semibold text-xs sm:text-base transition-all duration-200 touch-manipulation flex items-center justify-center ';
+    let keyClass = 'px-3 py-4 rounded font-semibold transition-all duration-200 touch-manipulation ';
     
     // Base styling
     if (key === 'ENTER' || key === 'BACKSPACE') {
-      keyClass += 'flex-grow sm:flex-grow-0 px-3 sm:px-4 bg-secondary text-secondary-foreground hover:bg-secondary/80 ';
+      keyClass += 'px-4 bg-secondary text-secondary-foreground hover:bg-secondary/80 ';
     } else {
       keyClass += 'bg-muted text-muted-foreground hover:bg-muted/80 ';
     }
@@ -88,9 +88,9 @@ export const GameKeyboard = ({
   };
 
   return (
-    <div className="space-y-1 sm:space-y-2">
+    <div className="space-y-2">
       {KEYBOARD_ROWS.map((row, index) => (
-        <div key={index} className="flex gap-0.5 sm:gap-1 justify-center">
+        <div key={index} className="flex gap-1 justify-center">
           {row.map(renderKey)}
         </div>
       ))}
