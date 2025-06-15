@@ -201,8 +201,11 @@ const Landing = () => {
       `}</style>
       <div className="container">
         <div className="hero-section fade-in">
-          <h1>🧩 ADHD Wordle Experience</h1>
-          <p>A Wordle-like game designed to offer a glimpse into the cognitive challenges faced by individuals with ADHD.</p>
+          <h1>ADHD Wordle Experience</h1>
+          <p>
+            A Wordle-like game designed to offer a glimpse into the cognitive challenges faced by
+            individuals with ADHD.
+          </p>
           <button className="play-button" onClick={() => setIsPopupOpen(true)}>
             🎮 Play Game
           </button>
@@ -210,48 +213,57 @@ const Landing = () => {
 
         <div className="content-card">
           <div className="intro-section">
-            <h2 className="fade-in" style={{animationDelay: '0.2s'}}>How It Simulates ADHD</h2>
+            <h2 className="fade-in" style={{ animationDelay: '0.2s' }}>
+              How It Simulates ADHD
+            </h2>
           </div>
 
           <div className="symptoms-grid">
-            <div className="symptom-card fade-in" style={{animationDelay: '0.3s'}}>
+            <div className="symptom-card fade-in" style={{ animationDelay: '0.3s' }}>
               <span className="symptom-icon">🥶</span>
               <h3 className="symptom-title">Executive Dysfunction</h3>
               <p className="symptom-description">
-                Represents moments where initiating a task feels impossible, causing a temporary freeze in action.
+                Represents moments where initiating a task feels impossible, causing a temporary
+                freeze in action.
               </p>
               <div className="simulation-tag">Simulated: Keyboard may freeze</div>
             </div>
 
-            <div className="symptom-card fade-in" style={{animationDelay: '0.4s'}}>
+            <div className="symptom-card fade-in" style={{ animationDelay: '0.4s' }}>
               <span className="symptom-icon">🎨</span>
               <h3 className="symptom-title">Sensory Overload</h3>
               <p className="symptom-description">
-                Simulates how sensory information can become jumbled or confusing under stress or overwhelm.
+                Simulates how sensory information can become jumbled or confusing under stress or
+                overwhelm.
               </p>
               <div className="simulation-tag">Simulated: Color perception changes</div>
             </div>
 
-            <div className="symptom-card fade-in" style={{animationDelay: '0.5s'}}>
+            <div className="symptom-card fade-in" style={{ animationDelay: '0.5s' }}>
               <span className="symptom-icon">⚡</span>
               <h3 className="symptom-title">Distractibility</h3>
               <p className="symptom-description">
-                Mimics how stimuli can pull focus away, requiring mental effort to return to the original task.
+                Mimics how stimuli can pull focus away, requiring mental effort to return to the
+                original task.
               </p>
               <div className="simulation-tag">Simulated: Distracting pop-ups</div>
             </div>
           </div>
 
-          <div className="how-it-works fade-in" style={{animationDelay: '0.6s'}}>
+          <div className="how-it-works fade-in" style={{ animationDelay: '0.6s' }}>
             <h3>💡 How This Works</h3>
             <p>
-              This game introduces challenges that mirror common ADHD experiences. You might find your keyboard unresponsive, colors shifting, or distracting pop-ups. These aren't bugs—they're features designed to help build empathy and understanding.
+              This game introduces challenges that mirror common ADHD experiences. You might find
+              your keyboard unresponsive, colors shifting, or distracting pop-ups. These aren't
+              bugs—they're features designed to help build empathy and understanding.
             </p>
           </div>
 
-          <div className="disclaimer fade-in" style={{animationDelay: '0.7s'}}>
+          <div className="disclaimer fade-in" style={{ animationDelay: '0.7s' }}>
             <p>
-              <strong>Important:</strong> This is a simplified educational tool, not a diagnostic one. Real ADHD experiences are complex and unique. Please consult a healthcare professional for guidance.
+              <strong>Important:</strong> This is a simplified educational tool, not a diagnostic
+              one. Real ADHD experiences are complex and unique. Please consult a healthcare
+              professional for guidance.
             </p>
           </div>
         </div>

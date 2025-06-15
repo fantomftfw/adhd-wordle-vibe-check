@@ -10,18 +10,10 @@ export const Navbar = () => {
               to="/"
               className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors"
             >
-              🧩 ADHD Wordle
+              ADHD Wordle
             </Link>
           </div>
         </div>
-      </div>
-      <div className="mt-2 text-sm opacity-70">
-        <a href="/privacy" className="hover:underline mr-3">
-          Privacy
-        </a>
-        <a href="/terms" className="hover:underline">
-          Terms
-        </a>
       </div>
     </nav>
   );

@@ -14,6 +14,7 @@ import { ExitIntentPopup } from './components/ExitIntentPopup';
 import { Navbar } from './components/Navbar';
 import { WaitlistBar } from './components/WaitlistBar';
 import { WaitlistDrawer } from './components/WaitlistDrawer';
+import { Footer } from './components/Footer';
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,14 @@ const ConditionalWaitlistBar = ({ onJoinClick }: { onJoinClick: () => void }) =>
     return null;
   }
   return <WaitlistBar onJoinClick={onJoinClick} />;
+};
+
+const ConditionalFooter = () => {
+  const location = useLocation();
+  if (location.pathname === '/game') {
+    return null;
+  }
+  return <Footer />;
 };
 
 const App = () => {
@@ -114,6 +123,7 @@ const App = () => {
                 <Route path="/terms" element={<Terms />} />
               </Routes>
             </main>
+            <ConditionalFooter />
             <ConditionalWaitlistBar onJoinClick={() => setShowMobileWaitlistDrawer(true)} />
           </div>
         </BrowserRouter>

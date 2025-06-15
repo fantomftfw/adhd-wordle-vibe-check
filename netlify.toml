@@ -19,9 +19,9 @@
 # Settings for the local development server (`netlify dev`)
 [[plugins]]
   package = "@netlify/plugin-lighthouse"
+  # Lighthouse plugin will report scores but not fail the build.
   [plugins.inputs]
-    thresholds = { performance = 90, accessibility = 90, best-practices = 90, seo = 90 }
-    fail_deploy_on_score_thresholds = false
+    output_path = "lighthouse-report.html"
 
 [dev]
   # The command to start your Vite dev server
