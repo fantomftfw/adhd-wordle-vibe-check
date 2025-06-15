@@ -42,7 +42,21 @@ const ConditionalFooter = () => {
   return <Footer />;
 };
 
+// Tracks page changes for GTM
+const RouteChangeTracker = () => {
+  const location = useLocation();
+  useEffect(() => {
+    (window as any).dataLayer = (window as any).dataLayer || [];
+    (window as any).dataLayer.push({
+      event: 'pageview',
+      page_path: location.pathname + location.search,
+    });
+  }, [location]);
+  return null;
+};
+
 const App = () => {
+  
   const [showExitIntentPopup, setShowExitIntentPopup] = useState(false);
   const [showMobileWaitlistDrawer, setShowMobileWaitlistDrawer] = useState(false);
   const [exitIntentTriggered, setExitIntentTriggered] = useState(false);
@@ -97,6 +111,7 @@ const App = () => {
           <div className="App bg-background text-foreground min-h-screen">
             <ConditionalNavbar />
             <Seo />
+            <RouteChangeTracker />
             <main className="pb-24 md:pb-0">
               {/* Desktop Exit Intent Popup */}
               {showExitIntentPopup && (

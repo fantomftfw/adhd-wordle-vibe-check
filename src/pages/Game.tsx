@@ -258,6 +258,9 @@ const GamePage = () => {
 
       if (random < triggerChance) {
         const symptomRoll = Math.random();
+        const attemptsMade = gameState.guesses.length; // 0-5
+        // Memory-lapse window widens by 3 % per extra attempt, capped +15 %
+        const memLapseThreshold = Math.min(0.75, 0.6 + attemptsMade * 0.03);
         console.log('🎯 Symptom type roll:', symptomRoll);
 
         setLastSymptomTime(currentTime);
@@ -271,7 +274,7 @@ const GamePage = () => {
           console.log('👁️ TRIGGERING: Color blindness');
           setColorBlindness(true);
           setTimeout(() => setColorBlindness(false), 3000 + adhdSettings.intensity * 200);
-        } else if (symptomRoll < 0.6) {
+        } else if (symptomRoll < memLapseThreshold) {
           console.log('📱 TRIGGERING: Notification Overload');
           playRandomNotificationSound();
           const notification =
@@ -396,15 +399,24 @@ const GamePage = () => {
       return interval;
     };
 
-    const firstInterval = computeInterval();
-    const timerId = setTimeout(function tick() {
-      triggerNotification();
-      const next = computeInterval();
-      // schedule next
-      setTimeout(tick, next);
-    }, firstInterval);
+    let timeoutId: NodeJS.Timeout;
 
-    return () => clearTimeout(timerId);
+    const scheduleNext = () => {
+      const interval = computeInterval();
+      timeoutId = setTimeout(() => {
+        triggerNotification();
+        scheduleNext();
+      }, interval);
+    };
+
+    // start the loop
+    scheduleNext();
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [gameActive, gameState.isGameOver, symptomsActive, adhdSettings.intensity]);
 
   // Power-up spawning - Fixed timing
