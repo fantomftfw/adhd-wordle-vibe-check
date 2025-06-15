@@ -6,11 +6,22 @@ export const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
-            <Link to="/" className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors">
+            <Link
+              to="/"
+              className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors"
+            >
               🧩 ADHD Wordle
             </Link>
           </div>
         </div>
+      </div>
+      <div className="mt-2 text-sm opacity-70">
+        <a href="/privacy" className="hover:underline mr-3">
+          Privacy
+        </a>
+        <a href="/terms" className="hover:underline">
+          Terms
+        </a>
       </div>
     </nav>
   );

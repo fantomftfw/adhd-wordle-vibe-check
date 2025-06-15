@@ -1,4 +1,4 @@
-import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
+import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -9,7 +9,10 @@ if (process.env.NODE_ENV !== 'production') {
 
 const { AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME, AIRTABLE_API_KEY } = process.env;
 
-const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
+// simple in-memory rate limit: max 3 submissions per IP per minute
+const submissionsByIp = new Map<string, number[]>();
+
+const handler: Handler = async (event: HandlerEvent, _context: HandlerContext) => {
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
@@ -25,29 +28,56 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
       statusCode: 500,
       body: JSON.stringify({
         error: 'Airtable environment variables are not configured.',
-        details: 'Please ensure AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME, and AIRTABLE_API_KEY are set.'
+        details:
+          'Please ensure AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME, and AIRTABLE_API_KEY are set.',
       }),
       headers: { 'Content-Type': 'application/json' },
     };
   }
-  
+
   if (!event.body) {
-      return {
-          statusCode: 400,
-          body: JSON.stringify({ error: 'Request body is missing.' }),
-          headers: { 'Content-Type': 'application/json' },
-      };
-  }
-
-  const { name, email } = JSON.parse(event.body);
-
-  if (!name || !email) {
     return {
       statusCode: 400,
-      body: JSON.stringify({ error: 'Name and email are required.' }),
+      body: JSON.stringify({ error: 'Request body is missing.' }),
       headers: { 'Content-Type': 'application/json' },
     };
   }
+
+  const { email, botField } = JSON.parse(event.body);
+
+  // honeypot: bots will fill hidden field
+  if (botField) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: 'Thanks!' }),
+      headers: { 'Content-Type': 'application/json' },
+    };
+  }
+
+  if (!email) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: 'Email is required.' }),
+      headers: { 'Content-Type': 'application/json' },
+    };
+  }
+
+  // rate limiting
+  const ip = event.headers['x-nf-client-connection-ip'] || event.headers['client-ip'] || 'unknown';
+  const now = Date.now();
+  const windowMs = 60_000; // 1 minute
+  const maxPerWindow = 3;
+  const timestamps = submissionsByIp.get(ip) || [];
+  const recent = timestamps.filter((t) => now - t < windowMs);
+  if (recent.length >= maxPerWindow) {
+    return {
+      statusCode: 429,
+      body: JSON.stringify({ error: 'Too many submissions. Please try again later.' }),
+      headers: { 'Content-Type': 'application/json' },
+    };
+  }
+  recent.push(now);
+  submissionsByIp.set(ip, recent);
 
   try {
     const airtableResponse = await fetch(
@@ -62,7 +92,6 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
           records: [
             {
               fields: {
-                Name: name,
                 Email: email,
               },
             },
@@ -82,7 +111,6 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
       body: JSON.stringify({ message: 'Success' }),
       headers: { 'Content-Type': 'application/json' },
     };
-
   } catch (error) {
     console.error('Handler Error:', error);
     return {

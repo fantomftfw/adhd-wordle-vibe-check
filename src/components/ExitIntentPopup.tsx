@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import noroLogo from '../assets/noro-logo.png';
 
 interface ExitIntentPopupProps {
@@ -7,7 +8,9 @@ interface ExitIntentPopupProps {
 }
 
 export const ExitIntentPopup = ({ onClose, onSubmit }: ExitIntentPopupProps) => {
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [email, setEmail] = useState('');
+  useFocusTrap(dialogRef, true, onClose);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,16 +21,26 @@ export const ExitIntentPopup = ({ onClose, onSubmit }: ExitIntentPopupProps) => 
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-in fade-in-0 font-sans">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl flex overflow-hidden m-4">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        className="bg-white rounded-lg shadow-2xl w-full max-w-4xl flex overflow-hidden m-4"
+      >
         {/* Left Column - Image */}
         <div className="w-1/2 hidden md:block">
-          <img src={noroLogo} alt="A calm, smiling purple blob character representing Noro AI" className="w-full h-full object-cover" />
+          <img
+            src={noroLogo}
+            alt="A calm, smiling purple blob character representing Noro AI"
+            className="w-full h-full object-cover"
+          />
         </div>
 
         {/* Right Column - Content */}
         <div className="w-full md:w-1/2 p-10 flex flex-col justify-center relative">
           <button
             onClick={onClose}
+            aria-label="Close popup"
             className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl"
           >
             &times;
@@ -63,8 +76,12 @@ export const ExitIntentPopup = ({ onClose, onSubmit }: ExitIntentPopupProps) => 
           </form>
 
           <div className="text-center mt-4">
-             <p className="text-sm text-gray-500"><strong>3,756+ ADHD’ers</strong> in 14+ countries are already in line.</p>
-             <p className="text-xs text-gray-400 mt-2">Early access closes Friday (unless we forget, haha)</p>
+            <p className="text-sm text-gray-500">
+              <strong>3,756+ ADHD’ers</strong> in 14+ countries are already in line.
+            </p>
+            <p className="text-xs text-gray-400 mt-2">
+              Early access closes Friday (unless we forget, haha)
+            </p>
           </div>
         </div>
       </div>

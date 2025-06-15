@@ -1,6 +1,9 @@
 # This file configures the build and deployment settings for Netlify.
 
 [build]
+  # run Lighthouse after build
+  publish = "dist"
+
   # This command builds your React app for production.
   command = "npm run build"
   
@@ -15,6 +18,12 @@
   node_bundler = "esbuild"
 
 # Settings for the local development server (`netlify dev`)
+[[plugins]]
+  package = "@netlify/plugin-lighthouse"
+  [plugins.inputs]
+    thresholds = { performance = 90, accessibility = 90, best-practices = 90, seo = 90 }
+    fail_deploy_on_score_thresholds = false
+
 [dev]
   # The command to start your Vite dev server
   command = "npm run dev"

@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner, toast } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import Landing from "./pages/Landing";
-import Game from "./pages/Game";
-import NotFound from "./pages/NotFound";
+import { Toaster } from '@/components/ui/toaster';
+import { Toaster as Sonner, toast } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { Seo } from '@/components/Seo';
+import Landing from './pages/Landing';
+import Game from './pages/Game';
+import NotFound from './pages/NotFound';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 import { ExitIntentPopup } from './components/ExitIntentPopup';
 import { Navbar } from './components/Navbar';
 import { WaitlistBar } from './components/WaitlistBar';
@@ -84,17 +87,18 @@ const App = () => {
         <BrowserRouter>
           <div className="App bg-background text-foreground min-h-screen">
             <ConditionalNavbar />
+            <Seo />
             <main className="pb-24 md:pb-0">
               {/* Desktop Exit Intent Popup */}
-              {showExitIntentPopup && 
-                <ExitIntentPopup 
-                  onClose={() => setShowExitIntentPopup(false)} 
-                  onSubmit={handleFormSubmit} 
+              {showExitIntentPopup && (
+                <ExitIntentPopup
+                  onClose={() => setShowExitIntentPopup(false)}
+                  onSubmit={handleFormSubmit}
                 />
-              }
+              )}
 
               {/* Mobile Waitlist Drawer */}
-              <WaitlistDrawer 
+              <WaitlistDrawer
                 isOpen={showMobileWaitlistDrawer}
                 onClose={() => setShowMobileWaitlistDrawer(false)}
                 onSubmit={handleFormSubmit}
@@ -106,6 +110,8 @@ const App = () => {
                 <Route path="/" element={<Landing />} />
                 <Route path="/game" element={<Game />} />
                 <Route path="*" element={<NotFound />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
               </Routes>
             </main>
             <ConditionalWaitlistBar onJoinClick={() => setShowMobileWaitlistDrawer(true)} />

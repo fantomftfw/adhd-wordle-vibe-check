@@ -1,0 +1,21 @@
+{
+  "name": "ADHD Wordle by Noro",
+  "short_name": "ADHD Wordle",
+  "description": "A playful Wordle that simulates ADHD symptoms and showcases Noro, the ADHD productivity app.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/noro-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/noro-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
