@@ -9,9 +9,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       /* Raise the toaster so it sits above the mobile waitlist banner */
-      offset={100}
+      offset={84}
       theme={theme as ToasterProps["theme"]}
-      className="toaster group z-40"
+      className="toaster group z-60"
       toastOptions={{
         classNames: {
           toast:
