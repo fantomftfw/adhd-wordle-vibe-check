@@ -511,31 +511,54 @@ const GamePage = () => {
                   Remaining: {formatTime(timeRemaining)}
                 </span>
               </div>
-            </header>
-            <div className={`flex items-center justify-between p-1 bg-background/20 rounded-lg border border-border/50 my-1`}>
+              </header>
+
+            {/* -- CONTROLS & STATUS -- */}
+            <div className="p-2 bg-background/20 rounded-lg border border-border/50 my-2 space-y-2">
+              {/* Intensity Slider - Always Visible */}
               <AccessibilityControls 
                 settings={adhdSettings}
                 onSettingsChange={setADHDSettings}
               />
-              <div className="flex flex-wrap items-center justify-end gap-1 text-xs">
-                {symptomsActive && (
-                  <div className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded inline-block">
-                    🧠 ADHD Mode Active - Intensity: {adhdSettings.intensity}/5
+              
+              {/* Status Indicator Bar - Non-Collapsing */}
+              <div className="min-h-[2rem] flex justify-center items-center gap-2 flex-wrap bg-muted/50 p-1 rounded-md">
+                {/* Symptom Indicators */}
+                {keyboardFrozen && activePowerUp !== 'remove_distraction' && (
+                  <div className="text-center text-xs text-red-600 font-bold bg-red-100 py-0.5 px-1.5 rounded">
+                    🔒 KEYBOARD FROZEN
                   </div>
                 )}
+                {colorBlindness && activePowerUp !== 'remove_distraction' && (
+                  <div className="text-center text-xs text-purple-600 font-bold bg-purple-100 py-0.5 px-1.5 rounded">
+                    👁️ COLORS DISRUPTED
+                  </div>
+                )}
+                {isShaking && activePowerUp !== 'remove_distraction' && (
+                    <div className="text-center text-xs text-orange-600 font-bold bg-orange-100 py-0.5 px-1.5 rounded">
+                        😵 SENSORY OVERLOAD
+                    </div>
+                )}
+
+                {/* Power-Up Indicators */}
                 {activePowerUp === 'remove_distraction' && (
-                  <div className="bg-green-100 text-green-800 px-2 py-1 rounded inline-block">
-                    🧘 Distraction-Free
+                  <div className="bg-green-100 text-green-800 px-2 py-1 rounded inline-block text-xs font-bold">
+                    🧘 DISTRACTION-FREE
                   </div>
                 )}
                 {activePowerUp === 'slow_time' && (
-                  <div className="bg-purple-100 text-purple-800 px-2 py-1 rounded inline-block">
-                    ⏰ Time Slowed Down!
+                  <div className="bg-purple-100 text-purple-800 px-2 py-1 rounded inline-block text-xs font-bold">
+                    ⏰ TIME SLOWED
                   </div>
+                )}
+
+                {/* Placeholder when no status */}
+                {!keyboardFrozen && !colorBlindness && !isShaking && !activePowerUp && (
+                  <span className="text-xs text-muted-foreground">Status bar is clear.</span>
                 )}
               </div>
             </div>
-            <div className={`py-1 space-y-1`}>
+            <div className={`flex-grow flex flex-col justify-center space-y-1 py-1`}>
               <GameGrid 
                 gameState={gameState}
                 colorBlindness={colorBlindness && activePowerUp !== 'remove_distraction'}
