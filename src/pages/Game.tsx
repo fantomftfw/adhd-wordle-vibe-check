@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Share2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Share2, Home } from 'lucide-react';
 import { GameGrid } from '@/components/GameGrid';
 import { GameKeyboard } from '@/components/GameKeyboard';
 import { AccessibilityControls } from '@/components/AccessibilityControls';
@@ -15,7 +16,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { toast } from "sonner"
 
 const GAME_DURATION = 300; // 5 minutes
-const SYMPTOMS_START_TIME = 20; // Start symptoms after 20 seconds
+const SYMPTOMS_START_TIME = 5; // Start symptoms after 5 seconds
 
 export interface ADHDSettings {
   intensity: number;
@@ -52,6 +53,7 @@ const FAKE_NOTIFICATIONS = [
 ];
 
 const GamePage = () => {
+  const navigate = useNavigate();
 
   const handleCopyToClipboard = () => {
     const title = `ADHD Wordle ${gameState.guesses.length}/6`;
@@ -483,105 +485,62 @@ const GamePage = () => {
 
   return (
     <div className={`min-h-screen transition-all duration-500 bg-background`}>
-      <div className={`container mx-auto max-w-lg p-4`}>
-        {/* Header */}
-        <header className={`text-center py-4 border-b border-border`}>
-          <h1 className="text-2xl font-bold text-foreground">ADHD Wordle</h1>
-          
-          {/* Combined Stats */}
-          <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
-            <span>Attempt: {gameState.currentRow + 1}/6</span>
-            <span className={`transition-all duration-300 ${isTimeDistorted ? 'text-red-500 font-extrabold animate-pulse' : (timeRemaining < 60 ? 'text-red-500 font-bold' : '')}`}>
-              Remaining: {formatTime(timeRemaining)}
-            </span>
-          </div>
+      <div className={`w-full ${gameState.isGameOver ? '' : 'max-w-md'} mx-auto flex flex-col flex-grow p-4`}>
 
-          {/* Symptom Status Indicators */}
-          <div className="mt-1 space-y-1 min-h-[1.75rem]">
-            {keyboardFrozen && activePowerUp !== 'remove_distraction' && (
-              <div className="text-center text-sm text-red-600 font-bold bg-red-100 py-1 px-2 rounded">
-                🔒 KEYBOARD FROZEN
-              </div>
-            )}
-            {colorBlindness && activePowerUp !== 'remove_distraction' && (
-              <div className="text-center text-sm text-purple-600 font-bold bg-purple-100 py-1 px-2 rounded">
-                👁️ COLORS DISRUPTED
-              </div>
-            )}
-          </div>
-        </header>
-
-        {/* Show game summary if game is over */}
+        {/* Conditional Rendering: Game View vs. Summary View */}
         {gameState.isGameOver ? (
-          <div className="py-4 space-y-4">
-            <GameSummary 
+          <div className="w-full flex-grow animate-fade-in">
+            <GameSummary
               gameState={gameState}
               timeElapsed={timeElapsed}
               correctWord={gameState.targetWord}
+              onCopyToClipboard={handleCopyToClipboard}
+              onShareOnX={handleShareOnX}
+              onPlayAgain={resetGame}
+              onGoHome={() => navigate('/')}
             />
-            
-            <div className="text-center flex justify-center gap-4">
-              <button
-                onClick={resetGame}
-                className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 transition-colors"
-              >
-                Play Again
-              </button>
-              <button
-                onClick={handleCopyToClipboard}
-                className="bg-secondary text-secondary-foreground px-6 py-2 rounded-md hover:bg-secondary/90 transition-colors flex items-center gap-2"
-              >
-                <Share2 className="w-4 h-4" />
-                Copy Results
-              </button>
-              <button
-                onClick={handleShareOnX}
-                className="bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 transition-colors flex items-center gap-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-twitter-x" viewBox="0 0 16 16">
-                  <path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.6.75ZM11.46 13.812h1.57L4.34 2.188H2.76l8.7 11.624Z"/>
-                </svg>
-                Share on X
-              </button>
-            </div>
           </div>
         ) : (
           <>
-            {/* ADHD Controls & Status */}
-            <div className={`flex items-center justify-between p-2 bg-background/20 rounded-lg border border-border/50 mb-2`}>
+            {/* Header */}
+                                    <header className="text-center py-2 border-b border-border">
+              <h1 className="text-2xl font-bold text-foreground">ADHD Wordle</h1>
+              <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
+                <span>Attempt: {gameState.guesses.length + 1} / 6</span>
+                <span className={`transition-all duration-300 ${isTimeDistorted ? 'text-red-500 font-extrabold animate-pulse' : (timeRemaining < 60 ? 'text-red-500 font-bold' : '')}`}>
+                  Remaining: {formatTime(timeRemaining)}
+                </span>
+              </div>
+            </header>
+            <div className={`flex items-center justify-between p-1 bg-background/20 rounded-lg border border-border/50 my-1`}>
               <AccessibilityControls 
                 settings={adhdSettings}
                 onSettingsChange={setADHDSettings}
               />
-              {/* Other Mode Indicators */}
               <div className="flex flex-wrap items-center justify-end gap-1 text-xs">
-                  {symptomsActive && (
-                    <div className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded inline-block m-1">
-                      🧠 ADHD Mode Active - Intensity: {adhdSettings.intensity}/5
-                    </div>
-                  )}
-
-                  {activePowerUp === 'remove_distraction' && (
-                    <div className="bg-green-100 text-green-800 px-2 py-1 rounded inline-block m-1">
-                      🧘 Distraction-Free
-                    </div>
-                  )}
-                  {activePowerUp === 'slow_time' && (
-                    <div className="bg-purple-100 text-purple-800 px-2 py-1 rounded inline-block m-1">
-                      ⏰ Time Slowed Down!
-                    </div>
-                  )}
+                {symptomsActive && (
+                  <div className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded inline-block">
+                    🧠 ADHD Mode Active - Intensity: {adhdSettings.intensity}/5
+                  </div>
+                )}
+                {activePowerUp === 'remove_distraction' && (
+                  <div className="bg-green-100 text-green-800 px-2 py-1 rounded inline-block">
+                    🧘 Distraction-Free
+                  </div>
+                )}
+                {activePowerUp === 'slow_time' && (
+                  <div className="bg-purple-100 text-purple-800 px-2 py-1 rounded inline-block">
+                    ⏰ Time Slowed Down!
+                  </div>
+                )}
               </div>
             </div>
-
-            {/* Main Game Area */}
-            <div className={`py-2 space-y-2`}>
+            <div className={`py-1 space-y-1`}>
               <GameGrid 
                 gameState={gameState}
                 colorBlindness={colorBlindness && activePowerUp !== 'remove_distraction'}
                 isShaking={isShaking}
               />
-              
               <GameKeyboard 
                 onKeyPress={handleKeyPress}
                 gameState={gameState}
@@ -590,28 +549,23 @@ const GamePage = () => {
                 targetWord={gameState.targetWord}
               />
             </div>
-
           </>
         )}
-
         {isHyperfocusing && <HyperfocusPopup onClose={() => setIsHyperfocusing(false)} />}
-
-        {/* Power-up floating action button - Enhanced for mobile */}
         {powerUpVisible && (
           <PowerUpBlob 
             type={powerUpType}
             onClick={() => handlePowerUpClick(powerUpType)}
           />
         )}
-
+        
         {distractionBlobVisible && (
           <DistractionBlob 
             onClick={handleDistractionClick}
             style={distractionBlobPosition} 
           />
         )}
-
-        {/* Context switch popup */}
+        
         {contextSwitchActive && activePowerUp !== 'remove_distraction' && (
           <ContextSwitchPopup 
             onComplete={() => setContextSwitchActive(false)}

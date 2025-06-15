@@ -3,13 +3,22 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner, toast } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Game from "./pages/Game";
 import NotFound from "./pages/NotFound";
 import { ExitIntentPopup } from './components/ExitIntentPopup';
+import { Navbar } from './components/NavBar';
 
 const queryClient = new QueryClient();
+
+const ConditionalNavbar = () => {
+  const location = useLocation();
+  if (location.pathname === '/game') {
+    return null;
+  }
+  return <Navbar />;
+};
 
 const App = () => {
   const [showExitIntentPopup, setShowExitIntentPopup] = useState(false);
@@ -62,16 +71,21 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        {showExitIntentPopup && <ExitIntentPopup onClose={() => setShowExitIntentPopup(false)} onSubmit={handleFormSubmit} />}
-        <Toaster />
-        <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/game" element={<Game />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <div className="App bg-background text-foreground min-h-screen">
+            <ConditionalNavbar />
+            <main>
+              {showExitIntentPopup && <ExitIntentPopup onClose={() => setShowExitIntentPopup(false)} onSubmit={handleFormSubmit} />}
+              <Toaster />
+              <Sonner />
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/game" element={<Game />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </main>
+          </div>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

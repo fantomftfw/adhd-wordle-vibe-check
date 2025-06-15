@@ -19,7 +19,7 @@ export const AccessibilityControls = ({ settings, onSettingsChange }: Accessibil
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="flex items-center gap-2 rounded-md border bg-secondary text-secondary-foreground px-4 py-2 text-sm hover:bg-secondary/80 transition-colors"
       >
         <Settings className="w-4 h-4" />
         ADHD Symptom Intensity
