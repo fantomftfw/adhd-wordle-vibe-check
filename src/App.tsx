@@ -8,7 +8,7 @@ import Landing from "./pages/Landing";
 import Game from "./pages/Game";
 import NotFound from "./pages/NotFound";
 import { ExitIntentPopup } from './components/ExitIntentPopup';
-import { Navbar } from './components/NavBar';
+import { Navbar } from './components/Navbar';
 
 const queryClient = new QueryClient();
 
