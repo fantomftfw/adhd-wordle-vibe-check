@@ -10,8 +10,10 @@ import { HyperfocusPopup } from '@/components/HyperfocusPopup';
 import { DistractionBlob } from '@/components/DistractionBlob';
 import { getGuessStatuses, LetterStatus } from '@/lib/wordleUtils';
 import { solutions } from '@/lib/solutions';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 import { toast } from 'react-hot-toast';
+import { X } from 'lucide-react';
 
 const GAME_DURATION = 300; // 5 minutes
 const SYMPTOMS_START_TIME = 5; // Start symptoms after 5 seconds
@@ -85,10 +87,12 @@ const FAKE_NOTIFICATIONS = [
   { title: '📰 News Alert', description: 'Breaking: A new study on productivity released.' },
   { title: '📦 Shopping', description: 'Your package has been shipped!' },
   { title: '📅 Calendar', description: 'Reminder: Team meeting in 15 minutes.' },
+  { title: '🔔🚨 Urgent Reminder', description: "Don't forget to send that urgent report." },
 ];
 
 const GamePage = () => {
   const navigate = useNavigate();
+  const isDesktop = useMediaQuery('(min-width: 768px)');
 
   const handleCopyToClipboard = () => {
     const title = `ADHD Wordle ${gameState.guesses.length}/6`;
@@ -215,6 +219,109 @@ const GamePage = () => {
     return () => clearInterval(interval);
   }, [gameActive, gameState.isGameOver, timeMultiplier, symptomsActive]);
 
+  const triggerNotification = useCallback(() => {
+    // Prevent notifications if the power-up is active.
+    if (activePowerUp === 'remove_distraction') {
+      return;
+    }
+    const notification = FAKE_NOTIFICATIONS[Math.floor(Math.random() * FAKE_NOTIFICATIONS.length)];
+    toast.custom(
+      (t) => (
+        <div
+          className={`pointer-events-auto flex w-full max-w-sm items-start space-x-4 rounded-lg bg-background p-4 shadow-lg ring-1 ring-black ring-opacity-5 transition-all ${
+            t.visible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
+          } ${!isDesktop ? 'cursor-pointer' : ''}`}
+          onClick={!isDesktop ? () => toast.dismiss(t.id) : undefined}
+        >
+          <div className="flex-1">
+            <p className="font-bold">{notification.title}</p>
+            <p className="text-sm">{notification.description}</p>
+          </div>
+          <div className="flex-shrink-0">
+            {isDesktop ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toast.dismiss(t.id);
+                }}
+                className="rounded-full p-1 text-foreground/50 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            ) : (
+              <X className="h-5 w-5 text-foreground/50" />
+            )}
+          </div>
+        </div>
+      ),
+      {
+        duration: 6000,
+      }
+    );
+    playRandomNotificationSound();
+  }, [activePowerUp, isDesktop]);
+
+  const triggerSymptom = useCallback(() => {
+    // Determine which symptom to trigger based on intensity
+    const symptomProbability = Math.random();
+    let symptomChoice = -1;
+
+    // Simplified symptom selection logic
+    if (symptomProbability < 0.2)
+      symptomChoice = 0; // Freeze
+    else if (symptomProbability < 0.4)
+      symptomChoice = 1; // Color
+    else if (symptomProbability < 0.6)
+      symptomChoice = 2; // Context Switch
+    else if (symptomProbability < 0.8)
+      symptomChoice = 3; // Distraction Blob
+    else symptomChoice = 4; // Notification
+
+    const currentTime = Date.now();
+
+    switch (symptomChoice) {
+      case 0: // Executive Dysfunction (Freeze)
+        if (Math.random() < 0.15 * (adhdSettings.intensity / 5)) {
+          console.log('🧠 Triggering symptom: Keyboard Freeze');
+          setKeyboardFrozen(true);
+          setTimeout(() => setKeyboardFrozen(false), 2000 + 2000 * (adhdSettings.intensity / 5));
+          setLastSymptomTime(currentTime);
+        }
+        break;
+      case 1: // Sensory Overload (Color Blindness)
+        if (Math.random() < 0.15 * (adhdSettings.intensity / 5)) {
+          console.log('🧠 Triggering symptom: Color Blindness');
+          setColorBlindness(true);
+          setTimeout(() => setColorBlindness(false), 5000 + 3000 * (adhdSettings.intensity / 5));
+          setLastSymptomTime(currentTime);
+        }
+        break;
+      case 2: // Context Switching
+        if (Math.random() < 0.1 * (adhdSettings.intensity / 5)) {
+          console.log('🧠 Triggering symptom: Context Switch');
+          setContextSwitchActive(true);
+          setLastSymptomTime(currentTime);
+        }
+        break;
+      case 3: // Distraction Blob
+        if (Math.random() < 0.2 * (adhdSettings.intensity / 5)) {
+          console.log('🧠 Triggering symptom: Distraction Blob');
+          setDistractionBlobVisible(true);
+          setLastSymptomTime(currentTime);
+        }
+        break;
+      case 4: // Notification Overload
+        if (Math.random() < 0.25 * (adhdSettings.intensity / 5)) {
+          console.log('🧠 Triggering symptom: Notification Overload');
+          triggerNotification();
+          setLastSymptomTime(currentTime);
+        }
+        break;
+      default:
+        break;
+    }
+  }, [adhdSettings.intensity, triggerNotification]);
+
   // ADHD Symptoms - Improved timing with intensity-based frequency
   useEffect(() => {
     if (!gameActive || gameState.isGameOver || !symptomsActive) return;
@@ -244,205 +351,41 @@ const GamePage = () => {
       }
 
       // Check if any major symptom is currently active
-      const majorSymptomActive = keyboardFrozen || colorBlindness || isHyperfocusing;
+      const majorSymptomActive =
+        keyboardFrozen || colorBlindness || isHyperfocusing || contextSwitchActive;
 
       const random = Math.random();
       console.log('🎲 Symptom check:', random);
 
-      // Intensity-based trigger chance (20% base + intensity bonus)
-      let triggerChance = 0.17 + adhdSettings.intensity * 0.058; // base chance
-      if (adhdSettings.intensity <= 3) {
-        triggerChance = Math.min(0.9, triggerChance * 3); // triple for levels 1-3, cap at 90%
+      // Don't trigger a new symptom if a major one is already active
+      if (majorSymptomActive && random < 0.7) {
+        console.log('🚫 Major symptom active, high chance to skip new one.');
+        return;
       }
 
-      if (random < triggerChance) {
-        const symptomRoll = Math.random();
-        const attemptsMade = gameState.guesses.length; // 0-5
-        // Memory-lapse window widens by 3 % per extra attempt, capped +15 %
-        const memLapseThreshold = Math.min(0.75, 0.6 + attemptsMade * 0.03);
-        console.log('🎯 Symptom type roll:', symptomRoll);
-
-        setLastSymptomTime(currentTime);
-
-        // Rebalanced frequencies including new Memory Lapse symptom
-        if (symptomRoll < 0.25 && !majorSymptomActive) {
-          console.log('🔒 TRIGGERING: Keyboard freeze');
-          setKeyboardFrozen(true);
-          setTimeout(() => setKeyboardFrozen(false), 3500 + adhdSettings.intensity * 300);
-        } else if (symptomRoll < 0.5 && !majorSymptomActive) {
-          console.log('👁️ TRIGGERING: Color blindness');
-          setColorBlindness(true);
-          setTimeout(() => setColorBlindness(false), 3000 + adhdSettings.intensity * 200);
-        } else if (symptomRoll < memLapseThreshold) {
-          console.log('📱 TRIGGERING: Notification Overload');
-          playRandomNotificationSound();
-          const notification =
-            FAKE_NOTIFICATIONS[Math.floor(Math.random() * FAKE_NOTIFICATIONS.length)];
-          toast(`${notification.title}\n${notification.description}`, { duration: 3000 });
-          console.log('🧠 TRIGGERING: Memory Lapse');
-          // remove last guess permanently
-          setGameState((prev) => {
-            if (prev.guesses.length === 0) return prev;
-            const newGuesses = [...prev.guesses];
-            const newStatuses = [...prev.statuses];
-            newGuesses.pop();
-            newStatuses.pop();
-            return {
-              ...prev,
-              guesses: newGuesses,
-              statuses: newStatuses,
-              currentRow: Math.max(0, prev.currentRow - 1),
-            } as GameState;
-          });
-          toast.error('Memory lapse! Your last word vanished.', { duration: 2500 });
-        } else if (symptomRoll < 0.8 && !majorSymptomActive) {
-          console.log('😵 TRIGGERING: Hyperfocus Episode');
-          setIsHyperfocusing(true);
-        } else if (symptomRoll < 0.9 && !isTimeDistorted) {
-          console.log('⏳ TRIGGERING: Time Distortion');
-          setIsTimeDistorted(true);
-          setTimeMultiplier(2); // Speed up time
-          setTimeout(
-            () => {
-              setIsTimeDistorted(false);
-              setTimeMultiplier(1); // Reset time
-            },
-            4000 + adhdSettings.intensity * 200
-          ); // Duration scales slightly
-        } else {
-          console.log('🔄 TRIGGERING: Context switch');
-          setContextSwitchActive(true);
-        }
-      }
+      triggerSymptom();
     }, symptomCheckInterval);
 
-    return () => {
-      console.log('🧹 Cleaning up symptoms interval');
-      clearInterval(symptomInterval);
-    };
+    return () => clearInterval(symptomInterval);
   }, [
     gameActive,
     gameState.isGameOver,
     symptomsActive,
+    adhdSettings.intensity,
     activePowerUp,
+    lastSymptomTime,
     keyboardFrozen,
     colorBlindness,
-    lastSymptomTime,
-    adhdSettings.intensity,
+    isHyperfocusing,
+    contextSwitchActive,
+    triggerSymptom,
   ]);
 
   // Impulse Control Challenge - Distraction Blob Spawning (DISABLED per user request)
-  useEffect(() => {
-    if (
-      !gameActive ||
-      gameState.isGameOver ||
-      !symptomsActive ||
-      activePowerUp === 'remove_distraction'
-    ) {
-      setDistractionBlobVisible(false);
-      return;
-    }
-
-    const baseInterval = 15000; // 15 seconds
-    const intensityMultiplier = Math.max(0.4, 1.2 - adhdSettings.intensity * 0.18);
-    const spawnIntervalTime = baseInterval * intensityMultiplier;
-
-    const spawnInterval = setInterval(() => {
-      if (!distractionBlobVisible) {
-        console.log('✨ Spawning Distraction Blob');
-        const top = `${Math.random() * 60 + 20}%`;
-        const left = `${Math.random() * 70 + 15}%`;
-        setDistractionBlobPosition({ top, left });
-        setDistractionBlobVisible(true);
-
-        // Automatically hide the blob after 5 seconds if not clicked
-        const hideTimer = setTimeout(() => {
-          setDistractionBlobVisible(false);
-          console.log('💨 Distraction blob disappeared.');
-        }, 5000);
-
-        // Store timer to clear it if clicked
-        setDistractionBlobTimer(hideTimer);
-      }
-    }, spawnIntervalTime);
-
-    return () => clearInterval(spawnInterval);
-  }, [
-    gameActive,
-    gameState.isGameOver,
-    symptomsActive,
-    adhdSettings.intensity,
-    distractionBlobVisible,
-    activePowerUp,
-  ]);
-
-  // 🔔 Independent Notification Overload timer
-  useEffect(() => {
-    if (!gameActive || gameState.isGameOver || !symptomsActive) return;
-
-    const triggerNotification = () => {
-      playRandomNotificationSound();
-      const notification =
-        FAKE_NOTIFICATIONS[Math.floor(Math.random() * FAKE_NOTIFICATIONS.length)];
-      toast(`${notification.title}\n${notification.description}`, { duration: 3000, icon: '🔔' });
-    };
-
-    const computeInterval = () => {
-      const base = 6000; // target ~6 s at intensity 3
-      const jitter = Math.random() * 2000 - 1000; // ±1 s
-      const intensityAdjustment = Math.max(0, adhdSettings.intensity - 3) * 1000; // -1 s per level above 3
-      const interval = Math.max(3000, base - intensityAdjustment + jitter);
-      return interval;
-    };
-
-    let timeoutId: NodeJS.Timeout;
-
-    const scheduleNext = () => {
-      const interval = computeInterval();
-      timeoutId = setTimeout(() => {
-        triggerNotification();
-        scheduleNext();
-      }, interval);
-    };
-
-    // start the loop
-    scheduleNext();
-
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [gameActive, gameState.isGameOver, symptomsActive, adhdSettings.intensity]);
-
-  // Power-up spawning - Fixed timing
-  useEffect(() => {
-    if (!gameActive || gameState.isGameOver || powerUpVisible || !symptomsActive) return;
-
-    console.log('💡 Starting power-up spawning system');
-
-    const spawnInterval = setInterval(() => {
-      if (Math.random() < 0.3) {
-        // Reduced to 30% chance
-        const powerUpTypes = ['slow_time', 'reveal_letters', 'remove_distraction'];
-        const randomType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
-
-        setPowerUpType(randomType);
-        setPowerUpVisible(true);
-        console.log('💡 Power-up spawned:', randomType);
-
-        setTimeout(() => {
-          setPowerUpVisible(false);
-          console.log('💡 Power-up disappeared');
-        }, 12000); // 12 seconds visibility (increased from 10)
-      }
-    }, 10000); // Check every 10 seconds (increased from 8)
-
-    return () => {
-      console.log('🧹 Cleaning up power-up interval');
-      clearInterval(spawnInterval);
-    };
-  }, [gameActive, gameState.isGameOver, powerUpVisible, symptomsActive]);
+  const [distractionActive, setDistractionActive] = useState(false);
+  const handleImpulseTrigger = () => {
+    // ... existing code ...
+  };
 
   const handlePowerUpClick = (type: string) => {
     setActivePowerUp(type);
@@ -718,7 +661,6 @@ const GamePage = () => {
         {contextSwitchActive && activePowerUp !== 'remove_distraction' && (
           <ContextSwitchPopup onComplete={() => setContextSwitchActive(false)} />
         )}
-        
       </div>
     </div>
   );

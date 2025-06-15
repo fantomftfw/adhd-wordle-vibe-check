@@ -43,12 +43,24 @@ const ConditionalFooter = () => {
   return <Footer />;
 };
 
+// Define a type for the dataLayer
+interface DataLayer {
+  push(event: { event: string; page_path: string }): void;
+}
+
+// Extend the Window interface
+declare global {
+  interface Window {
+    dataLayer: DataLayer;
+  }
+}
+
 // Tracks page changes for GTM
 const RouteChangeTracker = () => {
   const location = useLocation();
   useEffect(() => {
-    (window as any).dataLayer = (window as any).dataLayer || [];
-    (window as any).dataLayer.push({
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
       event: 'pageview',
       page_path: location.pathname + location.search,
     });
@@ -59,8 +71,9 @@ const RouteChangeTracker = () => {
 const App = () => {
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const toastPosition = isDesktop ? 'bottom-right' : 'bottom-center';
-  const toastMarginBottom = isDesktop ? '1rem' : '76px';
-  
+  const toastMarginBottom = isDesktop ? '1rem' : '0px';
+  const toastContainerClass = isDesktop ? '' : 'mobile-toast-container';
+
   const [showExitIntentPopup, setShowExitIntentPopup] = useState(false);
   const [showMobileWaitlistDrawer, setShowMobileWaitlistDrawer] = useState(false);
   const [exitIntentTriggered, setExitIntentTriggered] = useState(false);
@@ -136,6 +149,11 @@ const App = () => {
               <HotToaster
                 position={toastPosition}
                 gutter={8}
+                containerClassName={toastContainerClass}
+                containerStyle={{
+                  // Ensure the container is on top
+                  zIndex: 9999,
+                }}
                 toastOptions={{
                   // Define default options
                   duration: 5000,
@@ -145,6 +163,10 @@ const App = () => {
                     marginBottom: toastMarginBottom,
                     borderRadius: 'var(--radius)',
                     border: '1px solid hsl(var(--border))',
+                    // Make toast wider to ensure content fits
+                    minWidth: '350px',
+                    // Ensure toast itself is on top
+                    zIndex: 9999,
                   },
 
                   // Default options for specific types
