@@ -11,7 +11,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       /* Raise the toaster so it sits above the mobile waitlist banner */
       offset={120}
       theme={theme as ToasterProps["theme"]}
-      className="toaster group z-80"
+      className="toaster group z-70"
       toastOptions={{
         classNames: {
           toast:
