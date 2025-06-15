@@ -3,13 +3,30 @@ import { Toaster as Sonner, toast } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
+import { useEffect, useState } from "react";
+
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const { theme = "system" } = useTheme();
+  const [dynamicOffset, setDynamicOffset] = useState<number>(120);
+
+  // Re-calculate offset whenever the waitlist bar size might change
+  useEffect(() => {
+    const compute = () => {
+      const bar = document.getElementById("waitlist-bar");
+      if (bar) {
+        const h = bar.getBoundingClientRect().height;
+        setDynamicOffset(h + 8);
+      }
+    };
+    compute();
+    window.addEventListener("resize", compute);
+    return () => window.removeEventListener("resize", compute);
+  }, []);
 
   return (
     <Sonner
       /* Raise the toaster so it sits above the mobile waitlist banner */
-      offset={120}
+      offset={dynamicOffset}
       theme={theme as ToasterProps["theme"]}
       className="toaster group z-70"
       toastOptions={{

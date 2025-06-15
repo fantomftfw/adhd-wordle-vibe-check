@@ -7,7 +7,7 @@ interface WaitlistBarProps {
 
 export const WaitlistBar = ({ onJoinClick }: WaitlistBarProps) => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-70 bg-white/90 backdrop-blur-sm p-3 border-t border-gray-200 flex items-center justify-between md:hidden animate-in slide-in-from-bottom-12 duration-500">
+    <div id="waitlist-bar" className="fixed bottom-0 left-0 right-0 z-70 bg-white/90 backdrop-blur-sm p-3 border-t border-gray-200 flex items-center justify-between md:hidden animate-in slide-in-from-bottom-12 duration-500">
       <div className="flex items-center gap-3">
         <img src={noroLogo} alt="Noro Logo" className="w-10 h-10" />
         <div>
