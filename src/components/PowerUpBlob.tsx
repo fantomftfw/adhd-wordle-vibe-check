@@ -16,7 +16,7 @@ const POWER_UP_NAMES = {
 export const PowerUpBlob = ({ type, onClick }: PowerUpBlobProps) => {
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 cursor-pointer animate-pulse touch-manipulation"
+      className="fixed bottom-[88px] right-4 z-65 cursor-pointer animate-pulse touch-manipulation"
       style={{
         background: 'linear-gradient(45deg, #6366f1, #8b5cf6, #ec4899)',
         borderRadius: '50%',

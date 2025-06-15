@@ -89,6 +89,15 @@ const FAKE_NOTIFICATIONS = [
 ];
 
 const GamePage = () => {
+  // Auto-scroll on mobile to hide header and reveal buffer zone
+  useEffect(() => {
+    if (window.innerWidth <= 768) {
+      // allow layout to paint first
+      setTimeout(() => {
+        window.scrollTo({ top: 120, behavior: 'smooth' });
+      }, 100);
+    }
+  }, []);
   const navigate = useNavigate();
 
   const handleCopyToClipboard = () => {
