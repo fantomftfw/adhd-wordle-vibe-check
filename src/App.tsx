@@ -9,6 +9,8 @@ import Game from "./pages/Game";
 import NotFound from "./pages/NotFound";
 import { ExitIntentPopup } from './components/ExitIntentPopup';
 import { Navbar } from './components/Navbar';
+import { WaitlistBar } from './components/WaitlistBar';
+import { WaitlistDrawer } from './components/WaitlistDrawer';
 
 const queryClient = new QueryClient();
 
@@ -20,17 +22,24 @@ const ConditionalNavbar = () => {
   return <Navbar />;
 };
 
+const ConditionalWaitlistBar = ({ onJoinClick }: { onJoinClick: () => void }) => {
+  const location = useLocation();
+  if (location.pathname !== '/game') {
+    return null;
+  }
+  return <WaitlistBar onJoinClick={onJoinClick} />;
+};
+
 const App = () => {
   const [showExitIntentPopup, setShowExitIntentPopup] = useState(false);
+  const [showMobileWaitlistDrawer, setShowMobileWaitlistDrawer] = useState(false);
   const [exitIntentTriggered, setExitIntentTriggered] = useState(false);
 
   useEffect(() => {
     const handleMouseOut = (e: MouseEvent) => {
-      // Trigger only when the cursor moves upwards out of the viewport.
       if (e.clientY <= 0 && !exitIntentTriggered) {
         setShowExitIntentPopup(true);
         setExitIntentTriggered(true);
-        console.log('🚪 Upward exit intent detected!');
       }
     };
 
@@ -41,8 +50,8 @@ const App = () => {
     };
   }, [exitIntentTriggered]);
 
-  const handleFormSubmit = async ({ name, email }: { name: string; email: string }) => {
-    console.log('📝 Form submitted:', { name, email });
+  const handleFormSubmit = async ({ email }: { email: string }) => {
+    console.log('📝 Form submitted:', { email });
 
     try {
       const response = await fetch('/.netlify/functions/submit-to-airtable', {
@@ -50,22 +59,23 @@ const App = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, email }),
+        body: JSON.stringify({ email }),
       });
 
       if (!response.ok) {
-        // Get more detailed error from the serverless function's response
         const errorData = await response.json();
         throw new Error(errorData.details || 'Failed to subscribe. Check server logs.');
       }
 
-      toast.success(`Thanks for subscribing, ${name}!`);
+      toast.success(`Thanks for subscribing! You're on the list.`);
     } catch (error) {
       console.error('Submission Error:', error);
-      toast.error(error.message || 'Something went wrong. Please try again.');
+      const err = error as Error;
+      toast.error(err.message || 'Something went wrong. Please try again.');
     }
 
     setShowExitIntentPopup(false);
+    setShowMobileWaitlistDrawer(false);
   };
 
   return (
@@ -74,17 +84,31 @@ const App = () => {
         <BrowserRouter>
           <div className="App bg-background text-foreground min-h-screen">
             <ConditionalNavbar />
-            <main>
-              {showExitIntentPopup && <ExitIntentPopup onClose={() => setShowExitIntentPopup(false)} onSubmit={handleFormSubmit} />}
+            <main className="pb-24 md:pb-0">
+              {/* Desktop Exit Intent Popup */}
+              {showExitIntentPopup && 
+                <ExitIntentPopup 
+                  onClose={() => setShowExitIntentPopup(false)} 
+                  onSubmit={handleFormSubmit} 
+                />
+              }
+
+              {/* Mobile Waitlist Drawer */}
+              <WaitlistDrawer 
+                isOpen={showMobileWaitlistDrawer}
+                onClose={() => setShowMobileWaitlistDrawer(false)}
+                onSubmit={handleFormSubmit}
+              />
+
               <Toaster />
               <Sonner />
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/game" element={<Game />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
+            <ConditionalWaitlistBar onJoinClick={() => setShowMobileWaitlistDrawer(true)} />
           </div>
         </BrowserRouter>
       </TooltipProvider>

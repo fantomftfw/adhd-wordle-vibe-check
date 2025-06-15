@@ -524,6 +524,11 @@ const GamePage = () => {
               {/* Status Indicator Bar - Non-Collapsing */}
               <div className="min-h-[2rem] flex justify-center items-center gap-2 flex-wrap bg-muted/50 p-1 rounded-md">
                 {/* Symptom Indicators */}
+                {(contextSwitchActive || isHyperfocusing) && activePowerUp !== 'remove_distraction' && (
+                  <div className="text-center text-xs text-blue-600 font-bold bg-blue-100 py-0.5 px-1.5 rounded">
+                    🧠 DISTRACTION ACTIVE
+                  </div>
+                )}
                 {keyboardFrozen && activePowerUp !== 'remove_distraction' && (
                   <div className="text-center text-xs text-red-600 font-bold bg-red-100 py-0.5 px-1.5 rounded">
                     🔒 KEYBOARD FROZEN
@@ -552,10 +557,7 @@ const GamePage = () => {
                   </div>
                 )}
 
-                {/* Placeholder when no status */}
-                {!keyboardFrozen && !colorBlindness && !isShaking && !activePowerUp && (
-                  <span className="text-xs text-muted-foreground">Status bar is clear.</span>
-                )}
+
               </div>
             </div>
             <div className={`flex-grow flex flex-col justify-center space-y-1 py-1`}>
