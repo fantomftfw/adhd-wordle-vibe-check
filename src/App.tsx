@@ -124,7 +124,7 @@ const App = () => {
               </Routes>
             </main>
             <ConditionalFooter />
-            <ConditionalWaitlistBar onJoinClick={() => setShowMobileWaitlistDrawer(true)} />
+            <ConditionalWaitlistBar onJoinClick={() => setShowExitIntentPopup(true)} />
           </div>
         </BrowserRouter>
       </TooltipProvider>

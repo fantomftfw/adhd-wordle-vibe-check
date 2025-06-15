@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Share2, Home } from 'lucide-react';
 import { GameGrid } from '@/components/GameGrid';
 import { GameKeyboard } from '@/components/GameKeyboard';
 import { AccessibilityControls } from '@/components/AccessibilityControls';
@@ -228,7 +227,7 @@ const GamePage = () => {
 
     // Calculate symptom frequency based on intensity (1-5 scale)
     const baseInterval = 8000; // 8 seconds base
-    const intensityMultiplier = Math.max(0.3, 1.1 - adhdSettings.intensity * 0.2); // Higher intensity = more frequent
+    const intensityMultiplier = Math.max(0.3, 1.1 - adhdSettings.intensity * 0.23); // Higher intensity = more frequent
     const symptomCheckInterval = baseInterval * intensityMultiplier;
 
     console.log('🎯 Symptom check interval:', symptomCheckInterval, 'ms');
@@ -238,7 +237,7 @@ const GamePage = () => {
       const timeSinceLastSymptom = currentTime - lastSymptomTime;
 
       // Minimum cooldown based on intensity (higher intensity = shorter cooldown)
-      const minCooldown = Math.max(5000, 12000 - adhdSettings.intensity * 1500);
+      const minCooldown = Math.max(5000, 12000 - adhdSettings.intensity * 1725);
 
       if (timeSinceLastSymptom < minCooldown) {
         console.log('⏳ Symptom on cooldown, skipping...');
@@ -252,7 +251,10 @@ const GamePage = () => {
       console.log('🎲 Symptom check:', random);
 
       // Intensity-based trigger chance (20% base + intensity bonus)
-      const triggerChance = 0.15 + adhdSettings.intensity * 0.05; // 20% to 40% based on intensity
+      let triggerChance = 0.17 + adhdSettings.intensity * 0.058; // base chance
+      if (adhdSettings.intensity <= 3) {
+        triggerChance = Math.min(0.9, triggerChance * 3); // triple for levels 1-3, cap at 90%
+      }
 
       if (random < triggerChance) {
         const symptomRoll = Math.random();
@@ -260,7 +262,7 @@ const GamePage = () => {
 
         setLastSymptomTime(currentTime);
 
-        // Rebalanced frequencies - now with Time Distortion
+        // Rebalanced frequencies including new Memory Lapse symptom
         if (symptomRoll < 0.25 && !majorSymptomActive) {
           console.log('🔒 TRIGGERING: Keyboard freeze');
           setKeyboardFrozen(true);
@@ -269,19 +271,32 @@ const GamePage = () => {
           console.log('👁️ TRIGGERING: Color blindness');
           setColorBlindness(true);
           setTimeout(() => setColorBlindness(false), 3000 + adhdSettings.intensity * 200);
-        } else if (symptomRoll < 0.7) {
+        } else if (symptomRoll < 0.6) {
           console.log('📱 TRIGGERING: Notification Overload');
           playRandomNotificationSound();
           const notification =
             FAKE_NOTIFICATIONS[Math.floor(Math.random() * FAKE_NOTIFICATIONS.length)];
-          toast.info(notification.title, {
-            description: notification.description,
-            duration: 3000,
+          toast.info(notification.title, { description: notification.description, duration: 3000 });
+          console.log('🧠 TRIGGERING: Memory Lapse');
+          // remove last guess permanently
+          setGameState((prev) => {
+            if (prev.guesses.length === 0) return prev;
+            const newGuesses = [...prev.guesses];
+            const newStatuses = [...prev.statuses];
+            newGuesses.pop();
+            newStatuses.pop();
+            return {
+              ...prev,
+              guesses: newGuesses,
+              statuses: newStatuses,
+              currentRow: Math.max(0, prev.currentRow - 1),
+            } as GameState;
           });
-        } else if (symptomRoll < 0.85 && !majorSymptomActive) {
+          toast.error('Memory lapse! Your last word vanished.', { duration: 2500 });
+        } else if (symptomRoll < 0.8 && !majorSymptomActive) {
           console.log('😵 TRIGGERING: Hyperfocus Episode');
           setIsHyperfocusing(true);
-        } else if (symptomRoll < 0.95 && !isTimeDistorted) {
+        } else if (symptomRoll < 0.9 && !isTimeDistorted) {
           console.log('⏳ TRIGGERING: Time Distortion');
           setIsTimeDistorted(true);
           setTimeMultiplier(2); // Speed up time
@@ -316,7 +331,6 @@ const GamePage = () => {
 
   // Impulse Control Challenge - Distraction Blob Spawning (DISABLED per user request)
   useEffect(() => {
-    return; // blob spawning disabled
     if (
       !gameActive ||
       gameState.isGameOver ||
@@ -328,7 +342,7 @@ const GamePage = () => {
     }
 
     const baseInterval = 15000; // 15 seconds
-    const intensityMultiplier = Math.max(0.4, 1.2 - adhdSettings.intensity * 0.15);
+    const intensityMultiplier = Math.max(0.4, 1.2 - adhdSettings.intensity * 0.18);
     const spawnIntervalTime = baseInterval * intensityMultiplier;
 
     const spawnInterval = setInterval(() => {
@@ -359,6 +373,39 @@ const GamePage = () => {
     distractionBlobVisible,
     activePowerUp,
   ]);
+
+  // 🔔 Independent Notification Overload timer
+  useEffect(() => {
+    if (!gameActive || gameState.isGameOver || !symptomsActive) return;
+
+    const triggerNotification = () => {
+      playRandomNotificationSound();
+      const notification =
+        FAKE_NOTIFICATIONS[Math.floor(Math.random() * FAKE_NOTIFICATIONS.length)];
+      toast.info(notification.title, {
+        description: notification.description,
+        duration: 3000,
+      });
+    };
+
+    const computeInterval = () => {
+      const base = 6000; // target ~6 s at intensity 3
+      const jitter = Math.random() * 2000 - 1000; // ±1 s
+      const intensityAdjustment = Math.max(0, adhdSettings.intensity - 3) * 1000; // -1 s per level above 3
+      const interval = Math.max(3000, base - intensityAdjustment + jitter);
+      return interval;
+    };
+
+    const firstInterval = computeInterval();
+    const timerId = setTimeout(function tick() {
+      triggerNotification();
+      const next = computeInterval();
+      // schedule next
+      setTimeout(tick, next);
+    }, firstInterval);
+
+    return () => clearTimeout(timerId);
+  }, [gameActive, gameState.isGameOver, symptomsActive, adhdSettings.intensity]);
 
   // Power-up spawning - Fixed timing
   useEffect(() => {
