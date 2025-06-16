@@ -181,14 +181,17 @@ const App = () => {
               />
               <Routes>
                 <Route path="/" element={<Landing />} />
-                <Route path="/game" element={<Game />} />
+                <Route
+                  path="/game"
+                  element={<Game isPaused={showMobileWaitlistDrawer || showExitIntentPopup} />}
+                />
                 <Route path="*" element={<NotFound />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
               </Routes>
             </main>
             <ConditionalFooter />
-            <ConditionalWaitlistBar onJoinClick={() => setShowExitIntentPopup(true)} />
+            <ConditionalWaitlistBar onJoinClick={() => setShowMobileWaitlistDrawer(true)} />
           </div>
         </BrowserRouter>
       </TooltipProvider>

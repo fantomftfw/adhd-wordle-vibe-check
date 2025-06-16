@@ -104,7 +104,7 @@ const POWER_UP_META = {
   },
 };
 
-const GamePage = () => {
+const GamePage = ({ isPaused }: { isPaused: boolean }) => {
   const navigate = useNavigate();
   const isDesktop = useMediaQuery('(min-width: 768px)');
 
@@ -209,7 +209,7 @@ const GamePage = () => {
 
   // Main game timer
   useEffect(() => {
-    if (!gameActive || gameState.isGameOver) return;
+    if (!gameActive || gameState.isGameOver || isPaused) return;
 
     const interval = setInterval(() => {
       setTimeElapsed((prev) => {
@@ -233,7 +233,7 @@ const GamePage = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [gameActive, gameState.isGameOver, timeMultiplier, symptomsActive]);
+  }, [gameActive, gameState.isGameOver, timeMultiplier, symptomsActive, isPaused]);
 
   const triggerNotification = useCallback(() => {
     // Prevent notifications if the power-up is active.
@@ -374,7 +374,7 @@ const GamePage = () => {
 
   // ADHD Symptoms - Improved timing with intensity-based frequency
   useEffect(() => {
-    if (!gameActive || gameState.isGameOver || !symptomsActive) return;
+    if (!gameActive || gameState.isGameOver || !symptomsActive || isPaused) return;
 
     // Don't trigger symptoms if remove_distraction power-up is active
     if (activePowerUp === 'remove_distraction') return;
@@ -420,6 +420,7 @@ const GamePage = () => {
     contextSwitchActive,
     triggerSymptom,
     distractionBlobVisible,
+    isPaused,
   ]);
 
   // Dedicated Notification Overload effect
@@ -429,7 +430,8 @@ const GamePage = () => {
       gameState.isGameOver ||
       !symptomsActive ||
       activePowerUp === 'remove_distraction' ||
-      adhdSettings.intensity < 3
+      adhdSettings.intensity < 3 ||
+      isPaused
     ) {
       return;
     }
@@ -467,11 +469,12 @@ const GamePage = () => {
     adhdSettings.intensity,
     activePowerUp,
     triggerNotification,
+    isPaused,
   ]);
 
   // Power-Up Generation
   useEffect(() => {
-    if (!gameActive || gameState.isGameOver || availablePowerUp || activePowerUp) {
+    if (!gameActive || gameState.isGameOver || availablePowerUp || activePowerUp || isPaused) {
       return;
     }
 
@@ -487,7 +490,7 @@ const GamePage = () => {
     }, 20000);
 
     return () => clearInterval(powerUpInterval);
-  }, [gameActive, gameState.isGameOver, availablePowerUp, activePowerUp]);
+  }, [gameActive, gameState.isGameOver, availablePowerUp, activePowerUp, isPaused]);
 
   // Impulse Control Challenge - Distraction Blob Spawning (DISABLED per user request)
   const [distractionActive, setDistractionActive] = useState(false);
