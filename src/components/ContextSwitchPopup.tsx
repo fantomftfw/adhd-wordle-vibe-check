@@ -1,87 +1,58 @@
-
 import { useState, useEffect } from 'react';
 
 interface ContextSwitchPopupProps {
   onComplete: () => void;
 }
 
-const PUZZLES = [
-  {
-    question: "What's 7 + 5?",
-    answer: "12",
-    options: ["11", "12", "13", "14"]
-  },
-  {
-    question: "Which is bigger?",
-    answer: "Elephant",
-    options: ["Mouse", "Elephant", "Cat", "Dog"]
-  },
-  {
-    question: "2 × 4 = ?",
-    answer: "8",
-    options: ["6", "7", "8", "9"]
-  },
-  {
-    question: "Pick the color:",
-    answer: "Blue",
-    options: ["Red", "Blue", "Green", "Yellow"]
-  }
+const FACTS = [
+  'A group of flamingos is called a "flamboyance."',
+  'The national animal of Scotland is the unicorn.',
+  'Honey never spoils.',
+  "A shrimp's heart is in its head.",
+  "It's impossible for most people to lick their own elbow.",
+  'A crocodile cannot stick its tongue out.',
 ];
 
 export const ContextSwitchPopup = ({ onComplete }: ContextSwitchPopupProps) => {
-  const [puzzle] = useState(() => PUZZLES[Math.floor(Math.random() * PUZZLES.length)]);
-  const [timeLeft, setTimeLeft] = useState(7);
+  const [fact] = useState(() => FACTS[Math.floor(Math.random() * FACTS.length)]);
+  const [isButtonActive, setIsButtonActive] = useState(false);
+  const [buttonCountdown, setButtonCountdown] = useState(3);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
+    // This timer enables the button after 3 seconds.
+    const activationTimer = setTimeout(() => {
+      setIsButtonActive(true);
+    }, 3000);
+
+    // This interval updates the countdown text on the button.
+    const countdownInterval = setInterval(() => {
+      setButtonCountdown((prev) => {
         if (prev <= 1) {
-          onComplete();
+          clearInterval(countdownInterval);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [onComplete]);
-
-  const handleAnswer = (answer: string) => {
-    if (answer === puzzle.answer) {
-      onComplete();
-    }
-  };
+    return () => {
+      clearTimeout(activationTimer);
+      clearInterval(countdownInterval);
+    };
+  }, []);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
-        <div className="text-center mb-4">
-          <h3 className="text-lg font-bold text-gray-800">🧠 Quick Task!</h3>
-          <p className="text-sm text-gray-600">Context switching activated</p>
-          <div className="text-xs text-red-600 mt-1">Time: {timeLeft}s</div>
-        </div>
-        
-        <div className="mb-4">
-          <p className="text-center font-medium text-gray-800 mb-3">
-            {puzzle.question}
-          </p>
-          
-          <div className="grid grid-cols-2 gap-2">
-            {puzzle.options.map((option, index) => (
-              <button
-                key={index}
-                onClick={() => handleAnswer(option)}
-                className="bg-blue-100 hover:bg-blue-200 text-blue-800 py-2 px-3 rounded transition-colors text-sm font-medium"
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        <p className="text-xs text-gray-500 text-center">
-          Solve to return to the game
-        </p>
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] animate-fade-in">
+      <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl text-center">
+        <h3 className="text-xl font-bold text-gray-800 mb-2">🧠 Random Fact!</h3>
+        <p className="text-base text-gray-700 mb-4">{fact}</p>
+        <button
+          onClick={onComplete}
+          disabled={!isButtonActive}
+          className="w-full rounded-md bg-blue-600 px-4 py-2 text-white font-semibold transition-all duration-300 disabled:cursor-not-allowed disabled:bg-gray-400"
+        >
+          {isButtonActive ? 'Continue Game' : `Closing in ${buttonCountdown}...`}
+        </button>
       </div>
     </div>
   );

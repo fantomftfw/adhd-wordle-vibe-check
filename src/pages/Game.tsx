@@ -4,7 +4,6 @@ import { GameGrid } from '@/components/GameGrid';
 import { GameKeyboard } from '@/components/GameKeyboard';
 import { AccessibilityControls } from '@/components/AccessibilityControls';
 import { GameSummary } from '@/components/GameSummary';
-import { PowerUpBlob } from '@/components/PowerUpBlob';
 import { ContextSwitchPopup } from '@/components/ContextSwitchPopup';
 import { HyperfocusPopup } from '@/components/HyperfocusPopup';
 import { DistractionBlob } from '@/components/DistractionBlob';
@@ -89,6 +88,21 @@ const FAKE_NOTIFICATIONS = [
   { title: '📅 Calendar', description: 'Reminder: Team meeting in 15 minutes.' },
   { title: '🔔🚨 Urgent Reminder', description: "Don't forget to send that urgent report." },
 ];
+
+const POWER_UP_META = {
+  slow_time: {
+    text: '✨ Slow Time!',
+    className: 'from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700',
+  },
+  reveal_letters: {
+    text: '🔍 Reveal Letter!',
+    className: 'from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700',
+  },
+  remove_distraction: {
+    text: '🧘 Focus!',
+    className: 'from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700',
+  },
+};
 
 const GamePage = () => {
   const navigate = useNavigate();
@@ -176,11 +190,13 @@ const GamePage = () => {
   const [isTimeDistorted, setIsTimeDistorted] = useState(false);
   const [distractionBlobVisible, setDistractionBlobVisible] = useState(false);
   const [lastSymptomTime, setLastSymptomTime] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showDistractionPenalty, setShowDistractionPenalty] = useState(false);
+  const [showMemoryLapse, setShowMemoryLapse] = useState(false);
 
   // Power-ups
   const [activePowerUp, setActivePowerUp] = useState<string | null>(null);
-  const [powerUpVisible, setPowerUpVisible] = useState(false);
-  const [powerUpType, setPowerUpType] = useState<string>('');
+  const [availablePowerUp, setAvailablePowerUp] = useState<string | null>(null);
   const [timeMultiplier, setTimeMultiplier] = useState(1);
   const [isShaking, setIsShaking] = useState(false);
   const [distractionBlobPosition, setDistractionBlobPosition] = useState({
@@ -271,7 +287,14 @@ const GamePage = () => {
 
     if (symptomProbability < intensityThreshold) {
       // Pick a random symptom if the threshold is met
-      symptomChoice = Math.floor(Math.random() * 4); // Only 4 symptoms now
+      const memoryLapseChance = 0.15; // 15% chance for memory lapse
+      // Memory lapse only happens at intensity 3+ and if it wins the random roll
+      if (adhdSettings.intensity >= 3 && Math.random() < memoryLapseChance) {
+        symptomChoice = 5; // Memory Lapse is special and rare
+      } else {
+        // Pick from the other 5 symptoms (0 to 4)
+        symptomChoice = Math.floor(Math.random() * 5);
+      }
     } else {
       // No symptom triggered this time
       return;
@@ -301,6 +324,10 @@ const GamePage = () => {
       case 3: {
         // Distraction Blob
         console.log('🧠 Triggering symptom: Distraction Blob');
+        // Randomize position - avoid edges
+        const top = Math.floor(Math.random() * 80) + 10; // 10% to 90%
+        const left = Math.floor(Math.random() * 80) + 10; // 10% to 90%
+        setDistractionBlobPosition({ top: `${top}%`, left: `${left}%` });
         setDistractionBlobVisible(true);
         setLastSymptomTime(currentTime);
 
@@ -311,6 +338,34 @@ const GamePage = () => {
         setDistractionBlobTimer(newTimer);
         break;
       }
+      case 4: // Time Distortion
+        console.log('🧠 Triggering symptom: Time Distortion');
+        setIsTimeDistorted(true);
+        setTimeMultiplier(1.5); // Time speeds up by 50%
+        setTimeout(() => {
+          setIsTimeDistorted(false);
+          setTimeMultiplier(1);
+        }, 5000 + 3000 * durationMultiplier); // Lasts 5-8 seconds
+        setLastSymptomTime(currentTime);
+        break;
+      case 5: // Memory Lapse
+        console.log('🧠 Triggering symptom: Memory Lapse');
+        setShowMemoryLapse(true);
+        setTimeout(() => setShowMemoryLapse(false), 2500);
+        setGameState((prev) => {
+          if (prev.guesses.length === 0) {
+            return prev; // No guess to erase
+          }
+          return {
+            ...prev,
+            guesses: prev.guesses.slice(0, -1),
+            statuses: prev.statuses.slice(0, -1),
+            currentRow: prev.currentRow - 1,
+            currentGuess: '', // Also clear the current typing
+          };
+        });
+        setLastSymptomTime(currentTime);
+        break;
       // Notification Overload is now handled in its own effect
       default:
         break;
@@ -414,15 +469,38 @@ const GamePage = () => {
     triggerNotification,
   ]);
 
+  // Power-Up Generation
+  useEffect(() => {
+    if (!gameActive || gameState.isGameOver || availablePowerUp || activePowerUp) {
+      return;
+    }
+
+    // Try to generate a power-up every 20 seconds
+    const powerUpInterval = setInterval(() => {
+      if (Math.random() < 0.4) {
+        // 40% chance every 20s
+        const powerUps = ['slow_time', 'reveal_letters', 'remove_distraction'];
+        const chosenPowerUp = powerUps[Math.floor(Math.random() * powerUps.length)];
+        console.log(`🎁 Power-up generated: ${chosenPowerUp}`);
+        setAvailablePowerUp(chosenPowerUp);
+      }
+    }, 20000);
+
+    return () => clearInterval(powerUpInterval);
+  }, [gameActive, gameState.isGameOver, availablePowerUp, activePowerUp]);
+
   // Impulse Control Challenge - Distraction Blob Spawning (DISABLED per user request)
   const [distractionActive, setDistractionActive] = useState(false);
   const handleImpulseTrigger = () => {
     // ... existing code ...
   };
 
-  const handlePowerUpClick = (type: string) => {
+  const activatePowerUp = () => {
+    if (!availablePowerUp) return;
+
+    const type = availablePowerUp;
     setActivePowerUp(type);
-    setPowerUpVisible(false);
+    setAvailablePowerUp(null); // Use it up
     console.log('Power-up activated:', type);
 
     switch (type) {
@@ -452,8 +530,8 @@ const GamePage = () => {
 
   const handleKeyPress = useCallback(
     async (key: string) => {
-      if (gameState.isGameOver || keyboardFrozen) {
-        console.log('Key press ignored: Game over or keyboard frozen.');
+      if (gameState.isGameOver || keyboardFrozen || isProcessing) {
+        console.log('Key press ignored: Game over, keyboard frozen, or already processing.');
         return;
       }
 
@@ -462,12 +540,14 @@ const GamePage = () => {
 
       if (upperKey === 'ENTER') {
         console.log(`Enter pressed. Current guess: "${gameState.currentGuess}"`);
+        setIsProcessing(true);
 
         if (gameState.currentGuess.length !== 5) {
           console.log('Validation failed: Not enough letters.');
           toast.error('Not enough letters');
           setIsShaking(true);
           setTimeout(() => setIsShaking(false), 500);
+          setIsProcessing(false);
           return;
         }
 
@@ -488,6 +568,7 @@ const GamePage = () => {
               setIsShaking(false);
               setGameState((prevState) => ({ ...prevState, currentGuess: '' }));
             }, 500);
+            setIsProcessing(false);
             return;
           }
           console.log(`Validation successful: "${lowerCaseGuess}" is a valid word.`);
@@ -495,6 +576,7 @@ const GamePage = () => {
           toast.dismiss(toastId);
           console.error('API validation error:', error);
           toast.error('Could not validate word. Please check your connection.');
+          setIsProcessing(false);
           return;
         }
         // --- End Online Word Validation ---
@@ -526,6 +608,7 @@ const GamePage = () => {
           console.log(`Game over: No more guesses. The word was ${gameState.targetWord}`);
           toast(`The word was ${gameState.targetWord}`, { icon: 'ℹ️' });
         }
+        setIsProcessing(false);
       } else if (upperKey === 'BACKSPACE') {
         setGameState((prevState) => ({
           ...prevState,
@@ -538,7 +621,7 @@ const GamePage = () => {
         }));
       }
     },
-    [gameState, keyboardFrozen]
+    [gameState, keyboardFrozen, isProcessing]
   );
 
   const resetGame = () => {
@@ -559,9 +642,25 @@ const GamePage = () => {
     setColorBlindness(false);
     setContextSwitchActive(false);
     setActivePowerUp(null);
-    setPowerUpVisible(false);
+    setAvailablePowerUp(null);
     setLastSymptomTime(0);
     setTimeMultiplier(1);
+    if (distractionBlobTimer) {
+      clearTimeout(distractionBlobTimer);
+      setDistractionBlobTimer(null);
+    }
+
+    console.log('💥 Clicked a distraction!');
+    setDistractionBlobVisible(false);
+
+    // Penalty: Lose 5 seconds
+    setTimeElapsed((prev) => Math.min(GAME_DURATION, prev + 5));
+    setShowDistractionPenalty(true);
+    setTimeout(() => setShowDistractionPenalty(false), 2000);
+
+    // Visual feedback
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 500);
   };
 
   const handleDistractionClick = () => {
@@ -575,9 +674,8 @@ const GamePage = () => {
 
     // Penalty: Lose 5 seconds
     setTimeElapsed((prev) => Math.min(GAME_DURATION, prev + 5));
-    toast.error('Distraction! You lost 5 seconds.', {
-      duration: 2000,
-    });
+    setShowDistractionPenalty(true);
+    setTimeout(() => setShowDistractionPenalty(false), 2000);
 
     // Visual feedback
     setIsShaking(true);
@@ -630,6 +728,17 @@ const GamePage = () => {
 
               {/* Status Indicator Bar - Non-Collapsing */}
               <div className="min-h-[2rem] flex justify-center items-center gap-2 flex-wrap bg-muted/50 p-1 rounded-md">
+                {/* Power-Up Button */}
+                {availablePowerUp && (
+                  <button
+                    onClick={activatePowerUp}
+                    className={`flex-shrink-0 animate-pulse rounded-md bg-gradient-to-r px-3 py-1 text-xs font-bold text-white shadow-lg hover:animate-none ${
+                      POWER_UP_META[availablePowerUp as keyof typeof POWER_UP_META].className
+                    }`}
+                  >
+                    {POWER_UP_META[availablePowerUp as keyof typeof POWER_UP_META].text}
+                  </button>
+                )}
                 {/* Symptom Indicators */}
                 {(contextSwitchActive || isHyperfocusing) &&
                   activePowerUp !== 'remove_distraction' && (
@@ -650,6 +759,16 @@ const GamePage = () => {
                 {isShaking && activePowerUp !== 'remove_distraction' && (
                   <div className="text-center text-xs text-orange-600 font-bold bg-orange-100 py-0.5 px-1.5 rounded">
                     😵 SENSORY OVERLOAD
+                  </div>
+                )}
+                {showDistractionPenalty && (
+                  <div className="animate-fade-in rounded bg-yellow-100 px-1.5 py-0.5 text-center text-xs font-bold text-yellow-600">
+                    -5s (Clicked Distraction!)
+                  </div>
+                )}
+                {showMemoryLapse && (
+                  <div className="animate-fade-in rounded bg-red-100 px-1.5 py-0.5 text-center text-xs font-bold text-red-600">
+                    🤯 MEMORY LAPSE!
                   </div>
                 )}
 
@@ -683,9 +802,6 @@ const GamePage = () => {
           </>
         )}
         {isHyperfocusing && <HyperfocusPopup onClose={() => setIsHyperfocusing(false)} />}
-        {powerUpVisible && (
-          <PowerUpBlob type={powerUpType} onClick={() => handlePowerUpClick(powerUpType)} />
-        )}
 
         {distractionBlobVisible && (
           <DistractionBlob onClick={handleDistractionClick} style={distractionBlobPosition} />
