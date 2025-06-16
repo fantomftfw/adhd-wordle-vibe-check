@@ -7,8 +7,8 @@ interface SeoProps {
 }
 
 export const Seo = ({
-  title = 'ADHD Wordle by Noro',
-  description = 'Play Wordle with ADHD twists and join the Noro wait-list.',
+  title = 'ADHD Wordle: Every guess interrupted. Every thought derailed',
+  description = 'A Chaotic Word Game That Mimics ADHD By Derailing Your Focus With Fake Reminders Mid Guess Built To Mess With Your Brain In Real Time Finish If You Can.',
   image = '/og.png',
 }: SeoProps) => {
   const plausibleDomain = import.meta.env.VITE_PLAUSIBLE_DOMAIN as string | undefined;
