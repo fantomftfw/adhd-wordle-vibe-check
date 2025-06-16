@@ -266,61 +266,54 @@ const GamePage = () => {
     const symptomProbability = Math.random();
     let symptomChoice = -1;
 
-    // Simplified symptom selection logic
-    if (symptomProbability < 0.2)
-      symptomChoice = 0; // Freeze
-    else if (symptomProbability < 0.4)
-      symptomChoice = 1; // Color
-    else if (symptomProbability < 0.6)
-      symptomChoice = 2; // Context Switch
-    else if (symptomProbability < 0.8)
-      symptomChoice = 3; // Distraction Blob
-    else symptomChoice = 4; // Notification
+    // More direct symptom selection
+    const intensityThreshold = 0.2 + adhdSettings.intensity * 0.1; // Range from 0.3 to 0.7
+
+    if (symptomProbability < intensityThreshold) {
+      // Pick a random symptom if the threshold is met
+      symptomChoice = Math.floor(Math.random() * 4); // Only 4 symptoms now
+    } else {
+      // No symptom triggered this time
+      return;
+    }
 
     const currentTime = Date.now();
+    const durationMultiplier = adhdSettings.intensity / 5;
 
     switch (symptomChoice) {
       case 0: // Executive Dysfunction (Freeze)
-        if (Math.random() < 0.15 * (adhdSettings.intensity / 5)) {
-          console.log('🧠 Triggering symptom: Keyboard Freeze');
-          setKeyboardFrozen(true);
-          setTimeout(() => setKeyboardFrozen(false), 2000 + 2000 * (adhdSettings.intensity / 5));
-          setLastSymptomTime(currentTime);
-        }
+        console.log('🧠 Triggering symptom: Keyboard Freeze');
+        setKeyboardFrozen(true);
+        setTimeout(() => setKeyboardFrozen(false), 2000 + 2000 * durationMultiplier);
+        setLastSymptomTime(currentTime);
         break;
       case 1: // Sensory Overload (Color Blindness)
-        if (Math.random() < 0.15 * (adhdSettings.intensity / 5)) {
-          console.log('🧠 Triggering symptom: Color Blindness');
-          setColorBlindness(true);
-          setTimeout(() => setColorBlindness(false), 5000 + 3000 * (adhdSettings.intensity / 5));
-          setLastSymptomTime(currentTime);
-        }
+        console.log('🧠 Triggering symptom: Color Blindness');
+        setColorBlindness(true);
+        setTimeout(() => setColorBlindness(false), 5000 + 3000 * durationMultiplier);
+        setLastSymptomTime(currentTime);
         break;
       case 2: // Context Switching
-        if (Math.random() < 0.1 * (adhdSettings.intensity / 5)) {
-          console.log('🧠 Triggering symptom: Context Switch');
-          setContextSwitchActive(true);
-          setLastSymptomTime(currentTime);
-        }
+        console.log('🧠 Triggering symptom: Context Switch');
+        setContextSwitchActive(true);
+        setLastSymptomTime(currentTime);
         break;
       case 3: // Distraction Blob
-        if (Math.random() < 0.2 * (adhdSettings.intensity / 5)) {
-          console.log('🧠 Triggering symptom: Distraction Blob');
-          setDistractionBlobVisible(true);
-          setLastSymptomTime(currentTime);
-        }
+        console.log('🧠 Triggering symptom: Distraction Blob');
+        setDistractionBlobVisible(true);
+        setLastSymptomTime(currentTime);
+
+        // Hide the blob after 5 seconds if not clicked
+        const newTimer = setTimeout(() => {
+          setDistractionBlobVisible(false);
+        }, 5000);
+        setDistractionBlobTimer(newTimer);
         break;
-      case 4: // Notification Overload
-        if (Math.random() < 0.25 * (adhdSettings.intensity / 5)) {
-          console.log('🧠 Triggering symptom: Notification Overload');
-          triggerNotification();
-          setLastSymptomTime(currentTime);
-        }
-        break;
+      // Notification Overload is now handled in its own effect
       default:
         break;
     }
-  }, [adhdSettings.intensity, triggerNotification]);
+  }, [adhdSettings.intensity]);
 
   // ADHD Symptoms - Improved timing with intensity-based frequency
   useEffect(() => {
@@ -329,37 +322,27 @@ const GamePage = () => {
     // Don't trigger symptoms if remove_distraction power-up is active
     if (activePowerUp === 'remove_distraction') return;
 
-    console.log('🧠 Starting ADHD symptoms system with intensity:', adhdSettings.intensity);
-
     // Calculate symptom frequency based on intensity (1-5 scale)
-    const baseInterval = 8000; // 8 seconds base
-    const intensityMultiplier = Math.max(0.3, 1.1 - adhdSettings.intensity * 0.23); // Higher intensity = more frequent
+    const baseInterval = 6000; // Base interval of 6 seconds
+    const intensityMultiplier = 1.1 - adhdSettings.intensity * 0.15; // Higher intensity = more frequent
     const symptomCheckInterval = baseInterval * intensityMultiplier;
-
-    console.log('🎯 Symptom check interval:', symptomCheckInterval, 'ms');
 
     const symptomInterval = setInterval(() => {
       const currentTime = Date.now();
       const timeSinceLastSymptom = currentTime - lastSymptomTime;
 
-      // Minimum cooldown based on intensity (higher intensity = shorter cooldown)
-      const minCooldown = Math.max(5000, 12000 - adhdSettings.intensity * 1725);
+      const minCooldown = 3000 + (5 - adhdSettings.intensity) * 500; // Cooldown from 3s to 5s
 
       if (timeSinceLastSymptom < minCooldown) {
-        console.log('⏳ Symptom on cooldown, skipping...');
         return;
       }
 
       // Check if any major symptom is currently active
       const majorSymptomActive =
-        keyboardFrozen || colorBlindness || isHyperfocusing || contextSwitchActive;
+        keyboardFrozen || colorBlindness || contextSwitchActive || distractionBlobVisible;
 
-      const random = Math.random();
-      console.log('🎲 Symptom check:', random);
-
-      // Don't trigger a new symptom if a major one is already active
-      if (majorSymptomActive && random < 0.7) {
-        console.log('🚫 Major symptom active, high chance to skip new one.');
+      // Reduce the chance of a new symptom if one is already active
+      if (majorSymptomActive && Math.random() < 0.6) {
         return;
       }
 
@@ -379,6 +362,53 @@ const GamePage = () => {
     isHyperfocusing,
     contextSwitchActive,
     triggerSymptom,
+  ]);
+
+  // Dedicated Notification Overload effect
+  useEffect(() => {
+    if (
+      !gameActive ||
+      gameState.isGameOver ||
+      !symptomsActive ||
+      activePowerUp === 'remove_distraction' ||
+      adhdSettings.intensity < 3
+    ) {
+      return;
+    }
+
+    let notificationInterval: NodeJS.Timeout;
+
+    const scheduleNotification = () => {
+      let delay: number;
+      const intensity = adhdSettings.intensity;
+
+      if (intensity === 3) {
+        delay = 5000 + Math.random() * 2000; // 5-7 seconds
+      } else if (intensity === 4) {
+        delay = 3000 + Math.random() * 1000; // 3-4 seconds
+      } else if (intensity === 5) {
+        delay = 2000; // 2 seconds
+      } else {
+        return; // Don't run for intensity < 3
+      }
+
+      notificationInterval = setTimeout(() => {
+        console.log(`🧠 Triggering symptom: Notification Overload at intensity ${intensity}`);
+        triggerNotification();
+        scheduleNotification(); // Schedule the next one
+      }, delay);
+    };
+
+    scheduleNotification();
+
+    return () => clearTimeout(notificationInterval);
+  }, [
+    gameActive,
+    gameState.isGameOver,
+    symptomsActive,
+    adhdSettings.intensity,
+    activePowerUp,
+    triggerNotification,
   ]);
 
   // Impulse Control Challenge - Distraction Blob Spawning (DISABLED per user request)
