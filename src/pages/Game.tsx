@@ -298,7 +298,8 @@ const GamePage = () => {
         setContextSwitchActive(true);
         setLastSymptomTime(currentTime);
         break;
-      case 3: // Distraction Blob
+      case 3: {
+        // Distraction Blob
         console.log('🧠 Triggering symptom: Distraction Blob');
         setDistractionBlobVisible(true);
         setLastSymptomTime(currentTime);
@@ -309,6 +310,7 @@ const GamePage = () => {
         }, 5000);
         setDistractionBlobTimer(newTimer);
         break;
+      }
       // Notification Overload is now handled in its own effect
       default:
         break;
@@ -362,6 +364,7 @@ const GamePage = () => {
     isHyperfocusing,
     contextSwitchActive,
     triggerSymptom,
+    distractionBlobVisible,
   ]);
 
   // Dedicated Notification Overload effect
