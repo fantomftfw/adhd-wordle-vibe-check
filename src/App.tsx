@@ -77,6 +77,16 @@ const App = () => {
   const [showExitIntentPopup, setShowExitIntentPopup] = useState(false);
   const [showMobileWaitlistDrawer, setShowMobileWaitlistDrawer] = useState(false);
   const [exitIntentTriggered, setExitIntentTriggered] = useState(false);
+  const [isDistractionFreeMode, setIsDistractionFreeMode] = useState(false);
+
+  useEffect(() => {
+    // This effect ensures that when the popup is shown, distraction-free mode is activated.
+    if (showExitIntentPopup) {
+      setIsDistractionFreeMode(true);
+    } else {
+      setIsDistractionFreeMode(false);
+    }
+  }, [showExitIntentPopup]);
 
   useEffect(() => {
     const handleMouseOut = (e: MouseEvent) => {
@@ -183,7 +193,12 @@ const App = () => {
                 <Route path="/" element={<Landing />} />
                 <Route
                   path="/game"
-                  element={<Game isPaused={showMobileWaitlistDrawer || showExitIntentPopup} />}
+                  element={
+                    <Game
+                      isDistractionFreeMode={isDistractionFreeMode}
+                      onJoinWaitlist={() => setShowExitIntentPopup(true)}
+                    />
+                  }
                 />
                 <Route path="*" element={<NotFound />} />
                 <Route path="/privacy" element={<Privacy />} />
@@ -191,7 +206,7 @@ const App = () => {
               </Routes>
             </main>
             <ConditionalFooter />
-            <ConditionalWaitlistBar onJoinClick={() => setShowMobileWaitlistDrawer(true)} />
+            <ConditionalWaitlistBar onJoinClick={() => setShowExitIntentPopup(true)} />
           </div>
         </BrowserRouter>
       </TooltipProvider>

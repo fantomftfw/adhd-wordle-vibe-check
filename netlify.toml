@@ -12,6 +12,13 @@
   # The directory where Netlify will find the serverless functions.
   functions = "netlify/functions"
 
+# This rule is for single-page applications (SPAs). It redirects all traffic
+# to the index.html file, allowing the client-side router to handle routing.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
 [functions]
   # Specifies the bundler for the functions.
   node_bundler = "esbuild"

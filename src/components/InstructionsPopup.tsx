@@ -12,9 +12,15 @@ interface InstructionsPopupProps {
   isOpen: boolean;
   onClose: () => void;
   onContinue: () => void;
+  showContinueButton?: boolean;
 }
 
-export const InstructionsPopup = ({ isOpen, onClose, onContinue }: InstructionsPopupProps) => {
+export const InstructionsPopup = ({
+  isOpen,
+  onClose,
+  onContinue,
+  showContinueButton = true,
+}: InstructionsPopupProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px] bg-gray-800 text-white border-gray-700">
@@ -65,7 +71,11 @@ export const InstructionsPopup = ({ isOpen, onClose, onContinue }: InstructionsP
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={onContinue} className="w-full bg-green-600 hover:bg-green-700">Continue</Button>
+          {showContinueButton && (
+            <Button onClick={onContinue} className="w-full bg-green-600 hover:bg-green-700">
+              Continue
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

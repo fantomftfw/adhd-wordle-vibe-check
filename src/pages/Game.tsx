@@ -10,6 +10,8 @@ import { DistractionBlob } from '@/components/DistractionBlob';
 import { getGuessStatuses, LetterStatus } from '@/lib/wordleUtils';
 import { solutions } from '@/lib/solutions';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { InstructionsPopup } from '@/components/InstructionsPopup';
+import { HelpCircle } from 'lucide-react';
 
 import { toast } from 'react-hot-toast';
 import { X } from 'lucide-react';
@@ -104,7 +106,12 @@ const POWER_UP_META = {
   },
 };
 
-const GamePage = ({ isPaused }: { isPaused: boolean }) => {
+interface GamePageProps {
+  isDistractionFreeMode: boolean;
+  onJoinWaitlist: () => void;
+}
+
+const GamePage = ({ isDistractionFreeMode, onJoinWaitlist }: GamePageProps) => {
   const navigate = useNavigate();
   const isDesktop = useMediaQuery('(min-width: 768px)');
 
@@ -193,6 +200,7 @@ const GamePage = ({ isPaused }: { isPaused: boolean }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDistractionPenalty, setShowDistractionPenalty] = useState(false);
   const [showMemoryLapse, setShowMemoryLapse] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   // Power-ups
   const [activePowerUp, setActivePowerUp] = useState<string | null>(null);
@@ -209,7 +217,7 @@ const GamePage = ({ isPaused }: { isPaused: boolean }) => {
 
   // Main game timer
   useEffect(() => {
-    if (!gameActive || gameState.isGameOver || isPaused) return;
+    if (!gameActive || gameState.isGameOver) return;
 
     const interval = setInterval(() => {
       setTimeElapsed((prev) => {
@@ -233,7 +241,7 @@ const GamePage = ({ isPaused }: { isPaused: boolean }) => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [gameActive, gameState.isGameOver, timeMultiplier, symptomsActive, isPaused]);
+  }, [gameActive, gameState.isGameOver, timeMultiplier, symptomsActive]);
 
   const triggerNotification = useCallback(() => {
     // Prevent notifications if the power-up is active.
@@ -374,7 +382,7 @@ const GamePage = ({ isPaused }: { isPaused: boolean }) => {
 
   // ADHD Symptoms - Improved timing with intensity-based frequency
   useEffect(() => {
-    if (!gameActive || gameState.isGameOver || !symptomsActive || isPaused) return;
+    if (!gameActive || gameState.isGameOver || !symptomsActive || isDistractionFreeMode) return;
 
     // Don't trigger symptoms if remove_distraction power-up is active
     if (activePowerUp === 'remove_distraction') return;
@@ -411,16 +419,15 @@ const GamePage = ({ isPaused }: { isPaused: boolean }) => {
     gameActive,
     gameState.isGameOver,
     symptomsActive,
-    adhdSettings.intensity,
+    isDistractionFreeMode,
     activePowerUp,
+    adhdSettings.intensity,
     lastSymptomTime,
     keyboardFrozen,
     colorBlindness,
-    isHyperfocusing,
     contextSwitchActive,
-    triggerSymptom,
     distractionBlobVisible,
-    isPaused,
+    triggerSymptom,
   ]);
 
   // Dedicated Notification Overload effect
@@ -431,7 +438,7 @@ const GamePage = ({ isPaused }: { isPaused: boolean }) => {
       !symptomsActive ||
       activePowerUp === 'remove_distraction' ||
       adhdSettings.intensity < 3 ||
-      isPaused
+      isDistractionFreeMode
     ) {
       return;
     }
@@ -466,15 +473,15 @@ const GamePage = ({ isPaused }: { isPaused: boolean }) => {
     gameActive,
     gameState.isGameOver,
     symptomsActive,
-    adhdSettings.intensity,
     activePowerUp,
+    adhdSettings.intensity,
+    isDistractionFreeMode,
     triggerNotification,
-    isPaused,
   ]);
 
   // Power-Up Generation
   useEffect(() => {
-    if (!gameActive || gameState.isGameOver || availablePowerUp || activePowerUp || isPaused) {
+    if (!gameActive || gameState.isGameOver || availablePowerUp || activePowerUp) {
       return;
     }
 
@@ -490,7 +497,25 @@ const GamePage = ({ isPaused }: { isPaused: boolean }) => {
     }, 20000);
 
     return () => clearInterval(powerUpInterval);
-  }, [gameActive, gameState.isGameOver, availablePowerUp, activePowerUp, isPaused]);
+  }, [gameActive, gameState.isGameOver, availablePowerUp, activePowerUp]);
+
+  // This effect clears active symptoms when distraction-free mode is enabled.
+  useEffect(() => {
+    if (isDistractionFreeMode) {
+      console.log('🚫 Distraction-free mode activated. Clearing symptoms.');
+      // Clear all transient symptoms
+      setKeyboardFrozen(false);
+      setColorBlindness(false);
+      setContextSwitchActive(false);
+      setDistractionBlobVisible(false);
+      setIsTimeDistorted(false);
+      // Stop any pending timers for these symptoms
+      if (distractionBlobTimer) {
+        clearTimeout(distractionBlobTimer);
+        setDistractionBlobTimer(null);
+      }
+    }
+  }, [isDistractionFreeMode, distractionBlobTimer]);
 
   // Impulse Control Challenge - Distraction Blob Spawning (DISABLED per user request)
   const [distractionActive, setDistractionActive] = useState(false);
@@ -707,6 +732,7 @@ const GamePage = ({ isPaused }: { isPaused: boolean }) => {
               onShareOnX={handleShareOnX}
               onPlayAgain={resetGame}
               onGoHome={() => navigate('/')}
+              onJoinWaitlist={onJoinWaitlist}
             />
           </div>
         ) : (
@@ -715,7 +741,12 @@ const GamePage = ({ isPaused }: { isPaused: boolean }) => {
             <header className="text-center py-2 border-b border-border">
               <h1 className="text-2xl font-bold text-foreground">ADHD Wordle</h1>
               <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
-                <span>Attempt: {gameState.guesses.length + 1} / 6</span>
+                <div className="flex items-center gap-2">
+                  <span>Attempt: {gameState.guesses.length + 1} / 6</span>
+                  <button onClick={() => setShowInstructions(true)} aria-label="Show instructions">
+                    <HelpCircle className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                  </button>
+                </div>
                 <span
                   className={`transition-all duration-300 ${isTimeDistorted ? 'text-red-500 font-extrabold animate-pulse' : timeRemaining < 60 ? 'text-red-500 font-bold' : ''}`}
                 >
@@ -813,6 +844,13 @@ const GamePage = ({ isPaused }: { isPaused: boolean }) => {
         {contextSwitchActive && activePowerUp !== 'remove_distraction' && (
           <ContextSwitchPopup onComplete={() => setContextSwitchActive(false)} />
         )}
+
+        <InstructionsPopup
+          isOpen={showInstructions}
+          onClose={() => setShowInstructions(false)}
+          onContinue={() => setShowInstructions(false)} // Or a different action if needed
+          showContinueButton={false}
+        />
       </div>
     </div>
   );

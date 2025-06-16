@@ -9,6 +9,7 @@ interface GameSummaryProps {
   onShareOnX: () => void;
   onPlayAgain: () => void;
   onGoHome: () => void;
+  onJoinWaitlist: () => void;
 }
 
 export const GameSummary = ({
@@ -19,6 +20,7 @@ export const GameSummary = ({
   onShareOnX,
   onPlayAgain,
   onGoHome,
+  onJoinWaitlist,
 }: GameSummaryProps) => {
   const minutes = Math.floor(timeElapsed / 60);
   const seconds = timeElapsed % 60;
@@ -153,14 +155,18 @@ export const GameSummary = ({
               This game offers a glimpse into ADHD, but managing it is a real-life challenge. Noro is our upcoming app designed to provide the tools and support needed to navigate ADHD with confidence.
             </p>
             <button
-              onClick={() => window.open('https://noro.so', '_blank')}
+              onClick={onJoinWaitlist}
               className="bg-primary text-primary-foreground font-bold px-8 py-3 rounded-lg hover:bg-primary/90 transition-transform transform hover:scale-105"
             >
               Join the Waitlist
             </button>
           </div>
-          <div className="hidden md:block">
-            <img src="/noro-ss.png" alt="Noro App Screenshot" className="object-cover w-full h-full bg-muted"/>
+          <div className="hidden md:flex items-center justify-center p-6">
+            <img
+              src="/noro-logo.png"
+              alt="Noro App Logo"
+              className="object-contain w-[200px] h-[200px]"
+            />
           </div>
         </div>
       </div>

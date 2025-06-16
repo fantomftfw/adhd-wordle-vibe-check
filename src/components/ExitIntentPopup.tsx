@@ -20,7 +20,7 @@ export const ExitIntentPopup = ({ onClose, onSubmit }: ExitIntentPopupProps) => 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-in fade-in-0 font-sans">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] animate-in fade-in-0 font-sans">
       <div
         ref={dialogRef}
         role="dialog"
